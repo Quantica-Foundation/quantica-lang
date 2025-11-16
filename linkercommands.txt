@@ -1,0 +1,4 @@
+link output.o target\debug\quantica.lib /OUT:test_compile.exe /SUBSYSTEM:CONSOLE ws2_32.lib advapi32.lib userenv.lib ntdll.lib bcrypt.lib
+
+
+test_compile.exe & pause
