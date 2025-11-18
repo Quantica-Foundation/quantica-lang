@@ -6,7 +6,7 @@ use std::path::Path;
 pub struct Linker;
 
 impl Linker {
-    /// Links an object file with the Quantica runtime library to produce an executable
+   
     pub fn link_executable(
         object_file: &str, 
         output_exe: &str,
@@ -15,14 +15,14 @@ impl Linker {
     ) -> Result<(), String> {
         println!("🔗 Phase 5: Linking");
         
-        // Determine the runtime library path
+   
         let runtime_lib = if cfg!(target_os = "windows") {
             format!("{}/quantica.lib", runtime_lib_dir)
         } else {
             format!("{}/libquantica.a", runtime_lib_dir)
         };
         
-        // Check if runtime library exists
+        
         if !Path::new(&runtime_lib).exists() {
             return Err(format!(
                 "Runtime library not found: {}\n   \
@@ -31,12 +31,12 @@ impl Linker {
             ));
         }
         
-        // Check if object file exists
+       
         if !Path::new(object_file).exists() {
             return Err(format!("Object file not found: {}", object_file));
         }
         
-        // Try different linkers based on platform
+   
         #[cfg(target_os = "windows")]
         {
             Self::try_link_windows(object_file, output_exe, &runtime_lib,enable_lto)
@@ -57,14 +57,14 @@ impl Linker {
     ) -> Result<(), String> {
 
         let lto_args: Vec<&str> = if enable_lto { 
-            // In MSVC, LTO is controlled by passing an /LTCG flag.
+         
             println!("   -> Enabling ThinLTO (LTCG mode)...");
             vec!["/LTCG"] 
         } else { 
             vec![] 
         };
 
-        // Try clang first (best for object files)
+        
         println!("   -> Trying clang linker...");
         let clang_result = Command::new("clang")
             .args(lto_args.iter().cloned())
@@ -83,7 +83,7 @@ impl Linker {
             }
         }
         
-        // Try MSVC link.exe
+       
         println!("   -> Trying MSVC link.exe...");
         let link_result = Command::new("link.exe")
             .args(lto_args.iter().cloned())
@@ -93,7 +93,7 @@ impl Linker {
                 &format!("/OUT:{}", output_exe),
                 "/SUBSYSTEM:CONSOLE",
                 "/NOLOGO",
-                // Windows system libraries required by Rust std library
+       
                 "ws2_32.lib",      // Winsock (networking)
                 "advapi32.lib",    // Advanced Windows API
                 "userenv.lib",     // User environment
@@ -115,7 +115,7 @@ impl Linker {
             }
         }
         
-        // Try ld (MinGW)
+       
         println!("   -> Trying ld (MinGW)...");
         let ld_lto_arg = if enable_lto { "-Wl,--lto-thin" } else { "" };
         let ld_result = Command::new("ld")
@@ -152,7 +152,7 @@ impl Linker {
         enable_lto: bool,
     ) -> Result<(), String> {
         let lto_arg = if enable_lto { "-flto=thin" } else { "" };
-        // Try clang first
+       
         println!("   -> Trying clang linker...");
         let clang_result = Command::new("clang")
             .arg(lto_arg)
@@ -171,7 +171,7 @@ impl Linker {
             }
         }
         
-        // Try gcc
+    
         println!("   -> Trying gcc linker...");
         let gcc_result = Command::new("gcc")
             .arg(lto_arg)
@@ -196,4 +196,5 @@ impl Linker {
         
         Err("No suitable linker found. Please install clang or gcc.".to_string())
     }
+
 }
