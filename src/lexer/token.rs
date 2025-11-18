@@ -1,7 +1,7 @@
 #[derive(Debug, Clone, PartialEq)]
 #[allow(dead_code)]
 pub enum Token {
-    // Keywords - Core Language
+    // Keywords
     Let,
     Print,
     Echo,
@@ -174,8 +174,8 @@ pub enum Token {
     TensorProduct,  // *** (quantum tensor product)
     
     // Quantum Notation
-    KetState(String),  // |0}, |1}, |+}, |-}, etc.
-    BraState(String),  // {0|, {1|, etc.
+    KetState(String),  // |0}, |1}, |+}, |-}
+    BraState(String),  // {0|, {1|
     
     // Special
     Newline,
@@ -197,4 +197,5 @@ impl TokenWithLocation {
     pub fn new(token: Token, line: usize, column: usize, length: usize) -> Self {
         Self { token, line, column, length }
     }
+
 }
