@@ -1,17 +1,17 @@
 // src/evaluator/mod.rs
-use std::collections::HashMap; // Restored
+use std::collections::HashMap; 
 use crate::parser::ast::ASTNode;
 use crate::parser::ast::Loc;
 use crate::environment::{Environment, RuntimeValue, GateDefinition};
 use std::rc::Rc;
-use crate::lexer::Lexer; // Restored
-use crate::parser::Parser; // Restored
-use std::fs; // Restored
+use crate::lexer::Lexer; 
+use crate::parser::Parser;
+use std::fs; 
 use std::cell::RefCell;
 use rand::Rng;
-use crate::parser::ast::ImportSpec; // Restored
-use crate::parser::ast::ImportPath; // Restored
-use std::path::PathBuf; // Restored
+use crate::parser::ast::ImportSpec; 
+use crate::parser::ast::ImportPath; 
+use std::path::PathBuf; 
 use crate::parser::ast::BinaryOperator;
 
 use num_complex::Complex;
@@ -33,7 +33,7 @@ impl Evaluator {
         }
     }
 
-    // --- Core 'evaluate' function ---
+    
     pub fn evaluate(node: &ASTNode, env: &Rc<RefCell<Environment>>) -> Result<RuntimeValue, String> {
         match node {
             ASTNode::LetDeclaration { name, value, .. } => Self::eval_let_declaration(name, value, env),
@@ -159,23 +159,23 @@ impl Evaluator {
                 RuntimeValue::Int(n) if n > 0 => n as usize,
                 _ => return Err(format!("Runtime Error: Quantum register size must be a positive integer, got {:?}", size_val)),
             };
-            if size > 20 { // Max size is now more about memory, but still good to limit
+            if size > 20 {
                 return Err(format!("Runtime Error: Register size {} is too large to simulate.", size));
             }
-            // Use the sparse state vector
+            
             let state_map = Self::default_state_vector(size)?;
             RuntimeValue::QuantumRegister { size, state: Rc::new(RefCell::new(state_map)) }
         } else if let Some(expr) = initial_state_expr {
             let state_val = Self::evaluate(expr, env)?;
             match state_val {
-                // Clone the sparse state
+                
                 RuntimeValue::QuantumRegister { size, state } => {
                     RuntimeValue::QuantumRegister { size, state }
                 }
                 _ => return Err(format!("Runtime Error: Initial state for a quantum register must be a register, got {:?}", state_val.type_name())),
             }
         } else {
-            // Default to a single qubit
+         
             let size = 1; 
             let state_map = Self::default_state_vector(size)?;
             RuntimeValue::QuantumRegister { size, state: Rc::new(RefCell::new(state_map)) }
@@ -206,9 +206,9 @@ impl Evaluator {
 
     fn default_state_vector(size: usize) -> Result<HashMap<usize, (f64, f64)>, String> {
         if size == 0 { return Err("Runtime Error: Quantum register size must be > 0".to_string()); }
-        // The |0...0> state is just one entry in the map
+       
         let mut state = HashMap::new();
-        state.insert(0, (1.0, 0.0)); // |0> state has index 0
+        state.insert(0, (1.0, 0.0)); 
         Ok(state)
     }
 
@@ -225,7 +225,7 @@ impl Evaluator {
         Ok(state)
     }
 
-    // --- Math helpers ---
+   
     fn complex_mul((a, b): (f64, f64), (c, d): (f64, f64)) -> (f64, f64) {
         (a * c - b * d, a * d + b * c)
     }
@@ -243,7 +243,7 @@ impl Evaluator {
         a * a + b * b
     }
     
-    // --- *** NEW: eval_apply_statement *** ---
+    
     fn eval_apply_statement(
         gate_expr_node: &ASTNode,
         arg_nodes: &[ASTNode],
@@ -251,13 +251,13 @@ impl Evaluator {
         env: &Rc<RefCell<Environment>>,
     ) -> Result<RuntimeValue, String> {
         
-        // 1. Evaluate all qubit arguments
+       
         let mut qubit_args = Vec::new();
         for arg_node in arg_nodes {
             qubit_args.push(Self::evaluate(arg_node, env)?);
         }
 
-        // 2. Evaluate the gate expression
+      
         let gate_val = Self::eval_gate_expression(gate_expr_node, env)?;
 
         let (base_name, is_dagger, num_controls) = match gate_val {
@@ -265,11 +265,11 @@ impl Evaluator {
             _ => return Err(format!("Runtime Error at {}: Expression is not a valid gate.", loc)),
         };
 
-        // 3. Extract qubit info (state, indices, size)
+        
         let mut controls = Vec::new();
         let mut targets = Vec::new();
         
-        // --- THIS TYPE HAS CHANGED ---
+        
         let mut state_rc: Option<Rc<RefCell<HashMap<usize, (f64, f64)>>>> = None;
         let mut reg_size: Option<usize> = None;
 
@@ -281,7 +281,7 @@ impl Evaluator {
         
         for (i, qubit_val) in qubit_args.iter().enumerate() {
             let (q_state_rc, q_index, q_size) = match qubit_val {
-                // This now matches on the sparse state
+                
                 RuntimeValue::Qubit { state, index, size } => (state.clone(), *index, *size),
                 _ => return Err(format!("Runtime Error at {}: Gate arguments must be Qubits, but argument {} was {}.", loc, i+1, qubit_val.type_name())),
             };
@@ -302,11 +302,11 @@ impl Evaluator {
             }
         }
         
-        // 4. Get the parameters
+      
         let mut params = Vec::new();
         Self::extract_gate_params(gate_expr_node, &mut params, env)?;
 
-        // 5. Build the GateDefinition
+   
         let gate_def = GateDefinition {
             name: base_name,
             params,
@@ -316,7 +316,7 @@ impl Evaluator {
             state_rc: state_rc.unwrap(),
         };
         
-        // 6. Apply the gate
+   
         Self::apply_multi_controlled_gate(gate_def, is_dagger)
     }
 
@@ -347,7 +347,7 @@ impl Evaluator {
                     RuntimeValue::Gate { base_name, is_dagger, num_controls } => {
                         Ok(RuntimeValue::Gate {
                             base_name,
-                            is_dagger: !is_dagger, // Flip the flag
+                            is_dagger: !is_dagger,
                             num_controls,
                         })
                     }
@@ -361,7 +361,7 @@ impl Evaluator {
                         Ok(RuntimeValue::Gate {
                             base_name,
                             is_dagger,
-                            num_controls: num_controls + 1, // Add one control
+                            num_controls: num_controls + 1, 
                         })
                     }
                     _ => Err("Internal Error: 'controlled' did not receive a valid gate.".to_string())
@@ -406,21 +406,20 @@ impl Evaluator {
             }
 
             ASTNode::FunctionCall { callee, arguments, loc, .. } => {
-                // The callee must be a base Gate name (like 'rx' or 'cphase')
+               
                 let gate_name = match &**callee {
                     ASTNode::Identifier { name, .. } => name.to_lowercase(),
                     _ => return Err(format!("Runtime Error at {}: Gate expression must be a simple identifier inside the call.", loc)),
                 };
                 
-                // --- Extract the numerical parameters only ---
+              
                 for arg_node in arguments.iter() {
                     let arg_val = Self::evaluate(arg_node, env)?;
                     let float_param = match arg_val {
                         RuntimeValue::Float(f) => f,
                         RuntimeValue::Int(i) => i as f64,
                         _ => {
-                            // Only Qubit arguments should remain after the numerical ones
-                            // We stop processing if it's not a number.
+                          
                             break; 
                         }
                     };
@@ -435,13 +434,13 @@ impl Evaluator {
     }
 
 
-    // --- *** NEW: apply_multi_controlled_gate *** ---
+   
     pub fn apply_multi_controlled_gate(
         gate: GateDefinition,
         is_dagger: bool
     ) -> Result<RuntimeValue, String> {
         
-        // Check for native 2-qubit gates
+        
         let is_native_2qubit = matches!(
             gate.name.as_str(), 
             "cphase" | "cnot" | "cz" | "cx" | "cy" | "swap"
@@ -480,24 +479,23 @@ impl Evaluator {
         let old_state_map = &*state_map_guard;
         let mut new_state_map = HashMap::new();
         
-        // We need to keep track of states we've already processed
+
         let mut processed = std::collections::HashSet::new();
 
-        // Iterate over the non-zero amplitudes
+     
         for (&basis_state, &amp_tuple) in old_state_map.iter() {
             if processed.contains(&basis_state) {
                 continue;
             }
 
-            // Check if control bits are active
+     
             if (basis_state & control_mask) == control_mask {
                 
               
                 
-                // Find the partner state by flipping the target bit
+             
                 let partner_state = basis_state ^ target_mask;
-                
-                // Get amplitudes for both self and partner
+          
                 let amp_self_tuple = amp_tuple;
                 let amp_partner_tuple = old_state_map.get(&partner_state).cloned().unwrap_or((0.0, 0.0));
 
@@ -506,38 +504,37 @@ impl Evaluator {
 
                 let (amp0, amp1, idx0, idx1);
 
-                // Determine if self is |0> or |1>
+             
                 if (basis_state & target_mask) == 0 {
-                    // Self is |0>
+                
                     amp0 = amp_self;
                     amp1 = amp_partner;
                     idx0 = basis_state;
                     idx1 = partner_state;
                 } else {
-                    // Self is |1>
+            
                     amp0 = amp_partner;
                     amp1 = amp_self;
                     idx0 = partner_state;
                     idx1 = basis_state;
                 }
 
-                // Apply the 2x2 matrix
+            
                 let new_amp0 = matrix[0][0] * amp0 + matrix[0][1] * amp1;
                 let new_amp1 = matrix[1][0] * amp0 + matrix[1][1] * amp1;
 
-                // Insert into the new map only if non-zero
+              
                 Self::insert_if_nonzero(&mut new_state_map, idx0, new_amp0);
                 Self::insert_if_nonzero(&mut new_state_map, idx1, new_amp1);
 
-                // Mark both states as processed
+          
                 processed.insert(idx0);
                 processed.insert(idx1);
                 
                 
 
             } else {
-                // Control bits are not active, so this state is unchanged
-                // We just need to copy it
+                
                 new_state_map.insert(basis_state, amp_tuple);
                 processed.insert(basis_state);
             }
@@ -574,9 +571,9 @@ impl Evaluator {
                 let angle = if is_dagger { -phi } else { phi };
                 let phase_factor = C64::from_polar(1.0, angle);
 
-                // This is an in-place modification
+              
                 for (&basis_state, amp_tuple) in state_map_guard.iter_mut() {
-                    // Only apply phase when both control and target are |1>
+                 
                     if (basis_state & control_mask) != 0 && (basis_state & target_mask) != 0 {
                         let amp = C64::new(amp_tuple.0, amp_tuple.1);
                         let new_amp = amp * phase_factor;
@@ -591,11 +588,11 @@ impl Evaluator {
                     let bit_b = (basis_state & target_mask) != 0;
                     
                     if bit_a != bit_b {
-                        // If bits differ, swap them
+                    
                         let swapped_idx = basis_state ^ control_mask ^ target_mask;
                         new_state_map.insert(swapped_idx, amp_tuple);
                     } else {
-                        // Bits are the same, state is unchanged
+                      
                         new_state_map.insert(basis_state, amp_tuple);
                     }
                 }
@@ -604,21 +601,21 @@ impl Evaluator {
             "cnot" | "cx" => {
                 let mut new_state_map = HashMap::new();
                 for (&basis_state, &amp_tuple) in state_map_guard.iter() {
-                    // If control is |1>
+                
                     if (basis_state & control_mask) != 0 {
-                        let swapped_idx = basis_state ^ target_mask; // Flip target bit
+                        let swapped_idx = basis_state ^ target_mask; 
                         new_state_map.insert(swapped_idx, amp_tuple);
                     } else {
-                        // Control is |0>, state is unchanged
+                       
                         new_state_map.insert(basis_state, amp_tuple);
                     }
                 }
                 *state_map_guard = new_state_map;
             }
             "cz" => {
-                // In-place modification
+             
                 for (&basis_state, amp_tuple) in state_map_guard.iter_mut() {
-                    // If both are |1>, apply -1 phase
+                
                     if (basis_state & control_mask) != 0 && (basis_state & target_mask) != 0 {
                         *amp_tuple = (-amp_tuple.0, -amp_tuple.1);
                     }
@@ -632,18 +629,18 @@ impl Evaluator {
         Ok(RuntimeValue::None)
     }
 
-    // --- *** NEW: get_gate_matrix *** ---
+   
     fn get_gate_matrix(
         name: &str,
-        params: &[f64], // This now receives the parameters
+        params: &[f64], 
         is_dagger: bool
     ) -> Result<[[C64; 2]; 2], String> {
         
         let i = C64::new(0.0, 1.0);
-        let eff_dagger = if is_dagger { -1.0 } else { 1.0 }; // Used for RZ, S, T, CPhase
+        let eff_dagger = if is_dagger { -1.0 } else { 1.0 }; 
 
         match name {
-            // --- Standard Non-Parameterized Gates (Unchanged) ---
+           
             "x" | "not" | "cnot" | "ccx" | "toffoli" => {
                 Ok([ [C64::new(0.0, 0.0), C64::new(1.0, 0.0)],
                      [C64::new(1.0, 0.0), C64::new(0.0, 0.0)] ])
@@ -669,7 +666,7 @@ impl Evaluator {
                      [C64::new(0.0, 0.0), C64::from_polar(1.0, angle)] ])
             },
             
-            // --- *** PARAMETERIZED GATE LOGIC (NEW) *** ---
+
             "rx" => {
                 let theta = params.get(0).cloned().unwrap_or(0.0) * eff_dagger;
                 let t_2 = theta / 2.0;
@@ -692,9 +689,7 @@ impl Evaluator {
             }
             "cphase" => {
                 let phi = params.get(0).cloned().unwrap_or(0.0) * eff_dagger;
-                // CPhase logic is applied outside the 2x2 matrix for controlled gates,
-                // but since we are using apply_multi_controlled, the base gate is an I gate
-                // with a phase applied to the |1> component.
+              
                 Ok([ [C64::new(1.0, 0.0), C64::new(0.0, 0.0)],
                      [C64::new(0.0, 0.0), C64::from_polar(1.0, phi)] ])
             }
@@ -710,7 +705,7 @@ impl Evaluator {
                 
                 Ok([ [c00, c01], [c10, c11] ])
             }
-            // --- *** END PARAMETERIZED LOGIC *** ---
+        
             
             _ => Err(format!("Runtime Error: Unknown gate name '{}' for matrix generation.", name))
         }
@@ -724,7 +719,7 @@ impl Evaluator {
         
         let target_val = Self::evaluate(target_expr, env)?;
         let (state_rc, target_index, reg_size) = match target_val {
-            // This now gets the sparse state
+         
             RuntimeValue::Qubit { state, index, size } => (state, index, size),
             _ => return Err(format!("Runtime Error: 'measure' can only be used on a single Qubit, got {}.", target_val.type_name())),
         };
@@ -733,7 +728,7 @@ impl Evaluator {
     }
 
     fn perform_measurement(
-        state_rc: &Rc<RefCell<HashMap<usize, (f64, f64)>>>, // <-- TYPE CHANGED
+        state_rc: &Rc<RefCell<HashMap<usize, (f64, f64)>>>, 
         target_index: usize,
         total_size: usize,
     ) -> Result<RuntimeValue, String> {
@@ -748,9 +743,9 @@ impl Evaluator {
         let target_mask = 1 << target_index;
         let mut prob0 = 0.0;
         
-        // Iterate over the sparse map to calculate probability
+     
         for (&basis_state, &amp_tuple) in old_state_map.iter() {
-            if (basis_state & target_mask) == 0 { // If target bit is 0
+            if (basis_state & target_mask) == 0 { 
                 prob0 += amp_tuple.0.powi(2) + amp_tuple.1.powi(2);
             }
         }
@@ -772,29 +767,26 @@ impl Evaluator {
         
         let mut new_state_map = HashMap::new();
         
-        // Iterate and build the new sparse state
+       
         for (&basis_state, &amp_tuple) in old_state_map.iter() {
             let bit_at_index = (basis_state >> target_index) & 1;
             
-            // If this state matches the measurement, keep it
+           
             if bit_at_index as i64 == measured_result {
                 let (real, imag) = amp_tuple;
                 let normalized_amp = Self::complex_scalar_mul((real, imag), norm_factor);
                 new_state_map.insert(basis_state, normalized_amp);
             }
-            // If it doesn't match, we drop it (by not inserting it)
+          
         }
 
-        // Replace the old state with the new collapsed state
+       
         *state_map_guard = new_state_map;
         
         Ok(RuntimeValue::Int(measured_result))
     }
 
-    // ---
-    // --- Other Builtins / Helpers (Restored)
-    // ---
-    
+  
     fn eval_array_access(
         collection_expr: &Box<ASTNode>,
         index_expr: &Box<ASTNode>,
@@ -813,7 +805,7 @@ impl Evaluator {
                 };
                 elements.get(index).map(|e| e.borrow().clone()).ok_or(format!("Runtime Error at {}: Array index {} out of bounds for array of size {}.", loc, index, elements.len()))
             }
-            // --- UPDATED LOGIC ---
+    
             RuntimeValue::QuantumRegister { size, state } => {
                 let index = match index_val {
                     RuntimeValue::Int(i) => i,
@@ -826,12 +818,12 @@ impl Evaluator {
                     ));
                 }
                 Ok(RuntimeValue::Qubit {
-                    state: state.clone(), // Pass the sparse state Rc
+                    state: state.clone(), 
                     index: index as usize,
-                    size, // Pass the total register size
+                    size, 
                 })
             }
-            // --- END UPDATE ---
+           
             RuntimeValue::Dict(map) => {
                 let key = Self::value_to_string_key(index_val)?;
                 map.get(&key).map(|v| v.borrow().clone()).ok_or(format!("Runtime Error at {}: Key '{}' not found in dictionary.", loc, key))
@@ -850,9 +842,9 @@ impl Evaluator {
 ) -> Result<RuntimeValue, String> {
     let object = Self::evaluate(object_expr, env)?;
     match object {
-        // *** NEW: Handle Module member access ***
+       
         RuntimeValue::Module(module_env) => {
-            // Look up the member in the module's environment
+        
             match module_env.borrow().get(member) {
                 Some(value_rc) => Ok(value_rc.borrow().clone()),
                 None => Err(format!(
@@ -893,7 +885,7 @@ impl Evaluator {
     index: usize,
     amp: C64,
 ) {
-    // Use a small epsilon to avoid floating point issues
+ 
     if amp.norm_sqr() > 1e-12 {
         state_map.insert(index, (amp.re, amp.im));
     }
@@ -1107,18 +1099,18 @@ impl Evaluator {
         let flipped_node = match stmt {
             ASTNode::Apply { gate_expr, arguments, loc } => {
                 let daggered_gate_expr = match &**gate_expr {
-                    // Simple gate: X -> dagger(X)
+                
                     ASTNode::Gate { name, loc, .. } => {
                         ASTNode::Dagger {
                             gate_expr: Box::new(ASTNode::Gate { name: name.clone(), loc: *loc }),
                             loc: *loc,
                         }
                     }
-                    // Already daggered: dagger(X) -> X
+                 
                     ASTNode::Dagger { gate_expr, .. } => {
                         *gate_expr.clone()
                     }
-                    // Controlled gate: controlled(X) -> controlled(dagger(X))
+               
                     ASTNode::Controlled { gate_expr, loc } => {
                         let inner_gate = match &**gate_expr {
                             ASTNode::Gate { name, loc, .. } => {
@@ -1147,7 +1139,7 @@ impl Evaluator {
                             loc: *loc,
                         }
                     }
-                    // *** NEW: Parameterized gate: RX(theta) -> dagger(RX(theta)) ***
+                  
                     ASTNode::ParameterizedGate { name, parameters, loc } => {
                         ASTNode::Dagger {
                             gate_expr: Box::new(ASTNode::ParameterizedGate {
@@ -1190,7 +1182,7 @@ impl Evaluator {
     Ok(last_result)
 }
 
-    // --- (Rest of builtins) ---
+ 
 
     pub fn print_quantum_state(
         state: &Rc<RefCell<HashMap<usize, (f64, f64)>>>, 
@@ -1221,8 +1213,8 @@ impl Evaluator {
         }
         match &args[0] {
             RuntimeValue::QuantumRegister { size, state } => {
-                // Call the new, shared print function
-                Self::print_quantum_state(state, *size, 10); // 10 is max_entries
+         
+                Self::print_quantum_state(state, *size, 10);
                 Ok(RuntimeValue::None)
             }
             _ => Err(format!("Runtime Error: 'debug_state' argument must be a quantum register, got {}.", args[0].type_name())),
@@ -1242,7 +1234,7 @@ impl Evaluator {
             _ => return Err(format!("Runtime Error: 'measure' can only be used on a single Qubit, got {}.", target_val.type_name())),
         };
 
-        // This calls the core logic inside the Evaluator
+     
         Self::perform_measurement(&state_rc, target_index, reg_size)
     }
 
@@ -1262,10 +1254,10 @@ impl Evaluator {
     };
     
     if condition {
-        // Assertion passed, do nothing.
+    
         Ok(RuntimeValue::None)
     } else {
-        // Assertion failed. Return an error, which will stop execution.
+      
         Err(format!("Assertion Failed: {}", message))
     }
 }
@@ -1273,12 +1265,12 @@ impl Evaluator {
         let output: Vec<String> = args.into_iter()
             .map(|val| {
                 match val {
-                    RuntimeValue::String(s) => s,  // Just the string content
+                    RuntimeValue::String(s) => s,  
                     RuntimeValue::Int(n) => n.to_string(),
                     RuntimeValue::Float(f) => f.to_string(),
                     RuntimeValue::Bool(b) => b.to_string(),
                     RuntimeValue::None => "None".to_string(),
-                    _ => format!("{}", val),  // Uses Display trait
+                    _ => format!("{}", val),
                 }
             })
             .collect();
@@ -1356,7 +1348,7 @@ impl Evaluator {
         }
     }
     
-    // (Restored eval_let_declaration, etc.)
+ 
     fn eval_let_declaration(name: &str, value_expr: &ASTNode, env: &Rc<RefCell<Environment>>) -> Result<RuntimeValue, String> {
         let value = Self::evaluate(value_expr, env)?;
         env.borrow_mut().set(name.to_string(), value);
@@ -1367,7 +1359,7 @@ impl Evaluator {
         let new_value = Self::evaluate(value_expr, env)?;
         
         match target {
-            // Simple identifier assignment
+      
             ASTNode::Identifier { name, .. } => {
                 if let Some(var_rc) = env.borrow().get(name) {
                     *std::cell::RefCell::<_>::borrow_mut(&var_rc) = new_value; 
@@ -1377,7 +1369,7 @@ impl Evaluator {
                 }
             }
             
-            // Subscript assignment: dict["key"] = value or array[0] = value
+          
             ASTNode::ArrayAccess { array, index, loc } => {
                 let collection_val = Self::evaluate(array, env)?;
                 let index_val = Self::evaluate(index, env)?;
@@ -1426,14 +1418,14 @@ impl Evaluator {
         env: &Rc<RefCell<Environment>>
     ) -> Result<RuntimeValue, String> {
         
-        // --- THIS IS THE NEW LOGIC ---
+   
         let file_path = match path {
             ImportPath::File(f) => {
                 if f.ends_with(".qc") || f.contains('/') || f.contains('\\') {
-                    // It's a file path
+            
                     f.clone()
                 } else {
-                    // It's a package name
+              
                     format!("q_packages/{}/init.qc", f)
                 }
             }
@@ -1443,7 +1435,7 @@ impl Evaluator {
         };
        
 
-        // The rest of the function is the same, just using 'file_path'
+      
         let source = fs::read_to_string(&file_path)
             .map_err(|e| format!("Runtime Error: Failed to read module '{}': {}", file_path, e))?;
         
@@ -1453,14 +1445,14 @@ impl Evaluator {
         let mut parser = Parser::new(tokens);
         let ast = parser.parse().map_err(|e| format!("Module Parser Error: {}", e))?;
 
-        // Each module gets its own new, clean environment
+      
         let module_env = Rc::new(RefCell::new(Environment::new()));
         Self::evaluate_program(&ast, &module_env)?;
         
-        // Create a Module runtime value
+     
         let module_val = RuntimeValue::Module(module_env);
         
-        // Set the alias in the *current* environment
+      
         env.borrow_mut().set(alias.to_string(), module_val);
         
         Ok(RuntimeValue::None)
@@ -1589,7 +1581,7 @@ impl Evaluator {
     ) -> Result<RuntimeValue, String> {
         use crate::parser::ast::BinaryOperator::*;
         
-        // --- SPARSE TENSOR PRODUCT ---
+    
         if matches!(operator, TensorProduct) {
             match (left_val.clone(), right_val.clone()) {
                 (RuntimeValue::QuantumRegister { size: size_a, state: state_a_rc }, RuntimeValue::QuantumRegister { size: size_b, state: state_b_rc }) => {
@@ -1599,14 +1591,14 @@ impl Evaluator {
                     
                     let mut new_state = HashMap::new();
                     
-                    // Iterate over non-zero amplitudes of A
+             
                     for (&i, &amp_a) in state_a.iter() {
-                        // Iterate over non-zero amplitudes of B
+                
                         for (&j, &amp_b) in state_b.iter() {
                             let new_index = (i << size_b) | j;
                             let new_amp_tuple = Self::complex_mul(amp_a, amp_b);
                             
-                            // Check for zero is implicit, as amp_a and amp_b are non-zero
+                        
                             new_state.insert(new_index, new_amp_tuple);
                         }
                     }
@@ -1616,7 +1608,7 @@ impl Evaluator {
                 (l, r) => return Err(format!("Runtime Error at {}: Operator {:?} not defined for types {:?} and {:?}", loc, operator, l.type_name(), r.type_name())),
             }
         }
-        // --- END SPARSE TENSOR PRODUCT ---
+      
 
         match operator {
             Equal => {
@@ -1674,7 +1666,7 @@ impl Evaluator {
                 }
             }
             _ => {
-                // (This block is for Add, Sub, Mul, Div, Mod, etc.)
+            
                 let (op, l, r) = match (operator, left_val, right_val) {
                     (Div, RuntimeValue::Int(l), RuntimeValue::Int(r)) => (operator, RuntimeValue::Float(l as f64), RuntimeValue::Float(r as f64)),
                     (op, RuntimeValue::Int(l), RuntimeValue::Float(r)) if matches!(op, Add | Sub | Mul | Div | Less | Greater | LessEqual | GreaterEqual) => (op, RuntimeValue::Float(l as f64), RuntimeValue::Float(r)),
@@ -1709,4 +1701,5 @@ impl Evaluator {
             }
         }
     }
+
 }
