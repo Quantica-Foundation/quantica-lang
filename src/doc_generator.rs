@@ -5,26 +5,25 @@ use std::fs;
 use std::io::Write;
 use std::path::Path;
 
-/// A struct responsible for generating documentation from an AST.
+
 pub struct DocGenerator {
     markdown_buffer: String,
 }
 
 impl DocGenerator {
-    /// Creates a new DocGenerator.
+  
     pub fn new() -> Self {
         DocGenerator {
             markdown_buffer: String::new(),
         }
     }
 
-    /// Public entry point.
-    /// Generates documentation for the given program and saves it to a file.
+   
     pub fn run(ast: &ASTNode, output_file: &str) -> Result<(), String> {
         let mut generator = Self::new();
         generator.walk_program(ast)?;
         
-        // Ensure the output directory (e.g., "docs/") exists
+    
         if let Some(parent_dir) = Path::new(output_file).parent() {
             if !parent_dir.exists() {
                 fs::create_dir_all(parent_dir)
@@ -32,7 +31,7 @@ impl DocGenerator {
             }
         }
         
-        // Write the buffer to the file
+     
         let mut file = fs::File::create(output_file)
             .map_err(|e| format!("Failed to create doc file: {}", e))?;
         
@@ -42,10 +41,10 @@ impl DocGenerator {
         Ok(())
     }
 
-    /// Walks the main program and generates docs for top-level statements.
+   
     fn walk_program(&mut self, node: &ASTNode) -> Result<(), String> {
         if let ASTNode::Program(statements) = node {
-            // Add a title to the document
+       
             self.markdown_buffer.push_str("# Quantica API Reference\n\n");
             
             for stmt in statements {
@@ -57,7 +56,7 @@ impl DocGenerator {
         }
     }
 
-    /// The core logic. Checks a node for a doc comment and formats it.
+   
     fn generate_doc_for_node(&mut self, node: &ASTNode) {
         match node {
             ASTNode::FunctionDeclaration { doc_comment, name, parameters, return_type, .. } => {
@@ -90,16 +89,14 @@ impl DocGenerator {
                     );
                 }
             }
-            // We can add other documented nodes here, like `Class`, `Module`, etc.
+
             _ => {
-                // Not a documented node, just ignore it.
+           
             }
         }
     }
 
-    // --- Helper Functions ---
 
-    /// Adds a formatted function/circuit entry to the Markdown buffer.
     fn add_entry(
         &mut self,
         name: &str,
@@ -107,7 +104,7 @@ impl DocGenerator {
         return_type: &Option<Type>,
         comment: &str,
     ) {
-        // 1. Add the code signature
+
         self.markdown_buffer.push_str(&format!(
             "### `{}({}){}`\n\n",
             name,
@@ -115,19 +112,19 @@ impl DocGenerator {
             self.format_return_type(return_type)
         ));
         
-        // 2. Add the documentation
+ 
         self.markdown_buffer.push_str(comment);
-        self.markdown_buffer.push_str("\n\n---\n\n"); // Add horizontal rule
+        self.markdown_buffer.push_str("\n\n---\n\n");
     }
     
-    /// Adds a formatted variable entry to the Markdown buffer.
+   
     fn add_variable_entry(
         &mut self,
         name: &str,
         type_annotation: &Option<Type>,
         comment: &str,
     ) {
-        // 1. Add the code signature
+        
         let type_str = if let Some(t) = type_annotation {
             format!(": {}", self.format_type(t))
         } else {
@@ -138,12 +135,12 @@ impl DocGenerator {
             format!("{}{}", name, type_str)
         ));
         
-        // 2. Add the documentation
+     
         self.markdown_buffer.push_str(comment);
-        self.markdown_buffer.push_str("\n\n---\n\n"); // Add horizontal rule
+        self.markdown_buffer.push_str("\n\n---\n\n");
     }
 
-    /// Formats a list of parameters into a string: "p1: int, p2: float"
+ 
     fn format_params(&self, params: &[Parameter]) -> String {
         params.iter()
             .map(|p| format!("{}: {}", p.name, self.format_type(&p.param_type)))
@@ -151,7 +148,7 @@ impl DocGenerator {
             .join(", ")
     }
 
-    /// Formats a return type into a string: " -> int"
+
     fn format_return_type(&self, return_type: &Option<Type>) -> String {
         if let Some(t) = return_type {
             format!(" -> {}", self.format_type(t))
@@ -160,9 +157,10 @@ impl DocGenerator {
         }
     }
     
-    /// Formats a Type enum into a readable string.
+
     fn format_type(&self, t: &Type) -> String {
-        // This can be as simple or complex as you need
+       
         format!("{:?}", t)
     }
+
 }
