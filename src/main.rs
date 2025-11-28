@@ -508,7 +508,7 @@ fn run_jit_file(filename: &str, emit_llvm: bool, opt_level: OptimizationLevel,ta
         } else {
      
             let main_function_node = ASTNode::FunctionDeclaration {
-                doc_comment: None,
+                
                 name: "main".to_string(),
                 parameters: Vec::new(),
                 return_type: None,
@@ -1092,3 +1092,4 @@ fn parse_opt_level(arg: &str) -> Result<OptimizationLevel, String> {
 }
 
 //Made by M.Gurukasi from Quantica Foundation
+

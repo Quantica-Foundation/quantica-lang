@@ -33,7 +33,7 @@ pub enum ASTNode {
     
     // Statements
     LetDeclaration {
-        doc_comment: Option<String>,
+        
         name: String,
         type_annotation: Option<Type>,
         value: Box<ASTNode>,
@@ -62,14 +62,14 @@ pub enum ASTNode {
         initial_state: Option<Box<ASTNode>>,
     },
     FunctionDeclaration {
-        doc_comment: Option<String>,
+        
         name: String,
         parameters: Vec<Parameter>,
         return_type: Option<Type>,
         body: Box<ASTNode>,
     },
     CircuitDeclaration {
-        doc_comment: Option<String>,
+        
         name: String,
         parameters: Vec<Parameter>,
         return_type: Option<Type>,
@@ -236,4 +236,5 @@ pub enum Pattern {
     Literal(ASTNode),
     Identifier(String),
     Wildcard,
+
 }

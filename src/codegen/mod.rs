@@ -544,9 +544,8 @@ impl<'ctx> Compiler<'ctx> {
     pub fn compile_jit_program(&mut self, program: &ASTNode) -> Result<(), String> {
         if let ASTNode::Program(statements) = program {
             for stmt in statements {
-                if let ASTNode::FunctionDeclaration {
-                    doc_comment: _, name, parameters, return_type, body,
-                } = stmt {
+                if let ASTNode::FunctionDeclaration { name, parameters, return_type, body } = stmt {
+                   
                     self.compile_function(name, parameters, return_type, body)?;
                 } else {
                     return Err("(Codegen Error) JIT synthesis failed: Expected FunctionDeclaration.".to_string());
@@ -563,15 +562,13 @@ impl<'ctx> Compiler<'ctx> {
         if let ASTNode::Program(statements) = program {
             for stmt in statements {
                 match stmt {
-                    ASTNode::FunctionDeclaration {
-                        doc_comment: _, name, parameters, return_type, body,
-                    } => {
+                    ASTNode::FunctionDeclaration { name, parameters, return_type, body } => {
+                        
                         self.compile_function(name, parameters, return_type, body)?;
                     }
-
-                    ASTNode::CircuitDeclaration {
-                        doc_comment: _, name, parameters, return_type: _, body,
-                    } => {
+    
+                    ASTNode::CircuitDeclaration { name, parameters, return_type: _, body } => {
+                        
                         println!("\n⚙️ Compiling GPU Kernel: {}", name);
                         let kernel_ir = self.compile_gpu_kernel(name, body)?;
                         println!("   -> Kernel IR Dump (Placeholder):\n{}", kernel_ir);
@@ -612,9 +609,7 @@ impl<'ctx> Compiler<'ctx> {
     
     fn compile_statement(&mut self, node: &ASTNode, current_function: FunctionValue<'ctx>) -> Result<(), String> {
         match node {
-            ASTNode::LetDeclaration { 
-                doc_comment: _, name, type_annotation, value, is_mutable 
-            } => {
+            ASTNode::LetDeclaration { name, type_annotation, value, is_mutable } => {
                 self.compile_let_declaration(name, type_annotation, value, *is_mutable, current_function)?;
                 Ok(())
             }
@@ -1661,3 +1656,4 @@ impl<'ctx> Compiler<'ctx> {
     }
 
 }
+

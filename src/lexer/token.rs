@@ -130,7 +130,7 @@ pub enum Token {
     
     // Identifiers
     Identifier(String),
-    DocComment(String),
+    
     
     // Operators
     Plus,           // +
@@ -199,3 +199,4 @@ impl TokenWithLocation {
     }
 
 }
+

@@ -28,55 +28,37 @@ impl Lexer {
         let mut tokens = Vec::new();
         
         while !self.is_at_end() {
-            
-
             loop {
                 if self.start_of_line {
-                self.handle_indentation(&mut tokens)?;
-            }
+                    self.handle_indentation(&mut tokens)?;
+                }
                 self.skip_whitespace_except_newline(); 
-
+    
                 if self.current_char().ok() == Some('/') {
                     if self.peek() == Some('/') {
-                        
-                        if self.peek_n(2) == Some('/') { 
-                          
-                            let start_col = self.column;
-                            self.advance(); 
-                            
-                            let doc_token = self.doc_comment()?; 
-                            
-                            let length = self.column - start_col;
-                            tokens.push(self.make_token(doc_token, length));
-                            continue; 
-                             
-                        } else { 
-                           
-                            self.advance(); 
-                            self.skip_single_line_comment(); 
-                            continue; 
-                        }
-
+                        // Single-line comment
+                        self.advance(); 
+                        self.skip_single_line_comment(); 
+                        continue; 
+                    } else if self.peek() == Some('*') {
+                        // Multiline comment /* ... */
+                        self.advance(); 
+                        self.advance();
+                        self.skip_multiline_comment()?;
+                        continue;
                     } else {
-                  
+                        // Division operator
                         break;
                     }
                 } else {
-                
                     break; 
                 }
-             
             }
-           
-
+    
             if self.is_at_end() {
                 break;
             }
-            if self.is_at_end() {
-                break;
-            }
-
-           
+    
             if self.current_char().ok() == Some('\n') {
                 self.advance();
                 tokens.push(self.make_token(Token::Newline, 1));
@@ -235,7 +217,31 @@ impl Lexer {
         tokens.push(self.make_token(Token::Eof, 0));
         Ok(tokens)
     }
-    
+
+    fn skip_multiline_comment(&mut self) -> Result<(), String> {
+        let start_line = self.line;
+        
+        loop {
+            if self.is_at_end() {
+                return Err(format!(
+                    "Unterminated multiline comment starting at line {}",
+                    start_line
+                ));
+            }
+            
+            let ch = self.current_char()?;
+            
+            if ch == '*' && self.peek() == Some('/') {
+               
+                self.advance();
+                self.advance();
+                return Ok(());
+            }
+            
+            self.advance();
+        }
+    }
+        
     fn handle_indentation(&mut self, tokens: &mut Vec<TokenWithLocation>) -> Result<(), String> {
     let mut indent_level = 0;
     
@@ -908,70 +914,7 @@ impl Lexer {
     }
 
 
-    fn doc_comment(&mut self) -> Result<Token, String> {
-    self.advance(); // Consume the 2nd '/'
-    self.advance(); // Consume the 3rd '/'
-
-    let start_line = self.line;
-    let mut content = String::new();
-
-    loop {
-        match self.current_char() {
-            Ok('/') => {
-                self.advance(); 
-                
-                if self.current_char().ok() == Some('/') && self.peek() == Some('/') {
-                    self.advance(); // Consume 2nd '/'
-                    self.advance(); // Consume 3rd '/'
-                    
-               
-                    let trimmed_content = content.trim();
-                    let lines: Vec<&str> = trimmed_content.lines().collect();
-                    if lines.is_empty() {
-                        return Ok(Token::DocComment(String::new()));
-                    }
-                    
-               
-                    let common_indent = lines.iter()
-                        .filter(|line| !line.trim().is_empty())
-                        .map(|line| line.chars().take_while(|&c| c.is_whitespace()).count())
-                        .min()
-                        .unwrap_or(0);
-
-                
-                    let cleaned_lines: Vec<String> = lines.iter()
-                        .map(|line| {
-                            if line.len() >= common_indent {
-                                line[common_indent..].to_string()
-                            } else {
-                                line.to_string() 
-                            }
-                        })
-                        .collect();
-                    
-                    return Ok(Token::DocComment(cleaned_lines.join("\n")));
-                }
-             
-                content.push('/');
-            }
-            Ok('\n') => {
-                self.advance();
-                content.push('\n');
-            }
-            Ok(ch) => {
-                self.advance(); 
-                content.push(ch);
-            }
-            Err(_) => {
-     
-                return Err(format!(
-                    "Unterminated documentation comment (///...///) starting at line {}",
-                    start_line
-                ));
-            }
-        }
-    }
-}
+    
 
     fn advance(&mut self) {
     if !self.is_at_end() {
@@ -1167,3 +1110,6 @@ mod tests {
     }
 
 }
+
+
+

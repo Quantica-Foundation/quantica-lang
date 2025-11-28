@@ -59,39 +59,33 @@ impl DocGenerator {
    
     fn generate_doc_for_node(&mut self, node: &ASTNode) {
         match node {
-            ASTNode::FunctionDeclaration { doc_comment, name, parameters, return_type, .. } => {
-                if let Some(comment) = doc_comment {
-                    self.add_entry(
-                        &format!("func {}", name),
-                        &self.format_params(parameters),
-                        return_type,
-                        comment,
-                    );
-                }
+            ASTNode::FunctionDeclaration { name, parameters, return_type, .. } => {
+                
+                self.add_entry(
+                    &format!("func {}", name),
+                    &self.format_params(parameters),
+                    return_type,
+                    "No documentation available.",
+                );
             }
-            ASTNode::CircuitDeclaration { doc_comment, name, parameters, return_type, .. } => {
-                if let Some(comment) = doc_comment {
-                    self.add_entry(
-                        &format!("circuit {}", name),
-                        &self.format_params(parameters),
-                        return_type,
-                        comment,
-                    );
-                }
+            ASTNode::CircuitDeclaration { name, parameters, return_type, .. } => {
+                self.add_entry(
+                    &format!("circuit {}", name),
+                    &self.format_params(parameters),
+                    return_type,
+                    "No documentation available.",
+                );
             }
-            ASTNode::LetDeclaration { doc_comment, name, type_annotation, is_mutable, .. } => {
-                if let Some(comment) = doc_comment {
-                    let prefix = if *is_mutable { "mut" } else { "let" };
-                    self.add_variable_entry(
-                        &format!("{} {}", prefix, name),
-                        type_annotation,
-                        comment,
-                    );
-                }
+            ASTNode::LetDeclaration { name, type_annotation, is_mutable, .. } => {
+                let prefix = if *is_mutable { "mut" } else { "let" };
+                self.add_variable_entry(
+                    &format!("{} {}", prefix, name),
+                    type_annotation,
+                    "No documentation available.",
+                );
             }
-
             _ => {
-           
+                
             }
         }
     }
@@ -164,3 +158,4 @@ impl DocGenerator {
     }
 
 }
+
