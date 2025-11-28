@@ -64,17 +64,17 @@ impl Parser {
         if self.is_at_end() {
             return Err("Unexpected end of file".to_string());
         }
-        let doc_comment = self.consume_doc_comment();
+        
         
         match &self.current()?.token {
-            Token::Let => self.parse_let_declaration(doc_comment),
-            Token::Mut => self.parse_mut_declaration(doc_comment),
+            Token::Let => self.parse_let_declaration(),
+            Token::Mut => self.parse_mut_declaration(),
             Token::Try => self.parse_try_catch(),
             Token::Quantum => self.parse_quantum_declaration(),
             Token::Import => self.parse_import_statement(),
             Token::From => self.parse_from_import(),
-            Token::Func => self.parse_function_declaration(doc_comment),
-            Token::Circuit => self.parse_circuit_declaration(doc_comment),
+            Token::Func => self.parse_function_declaration(),
+            Token::Circuit => self.parse_circuit_declaration(),
             Token::Return => self.parse_return(),
             Token::If => self.parse_if(),
             Token::Match => self.parse_match(),
@@ -380,7 +380,7 @@ impl Parser {
     }
     
     
-    fn parse_let_declaration(&mut self,doc_comment: Option<String>) -> Result<ASTNode, String> {
+    fn parse_let_declaration(&mut self,) -> Result<ASTNode, String> {
         self.expect(&Token::Let)?;
         
         let name_loc = self.expect_identifier()?; 
@@ -601,7 +601,7 @@ impl Parser {
         })
     }
     
-    fn parse_function_declaration(&mut self,doc_comment: Option<String>) -> Result<ASTNode, String> {
+    fn parse_function_declaration(&mut self,) -> Result<ASTNode, String> {
         self.expect(&Token::Func)?;
         
         let name_loc = self.expect_identifier()?; 
@@ -631,7 +631,7 @@ impl Parser {
         })
     }
     
-    fn parse_circuit_declaration(&mut self,doc_comment: Option<String>) -> Result<ASTNode, String> {
+    fn parse_circuit_declaration(&mut self,) -> Result<ASTNode, String> {
         self.expect(&Token::Circuit)?;
         
         let name_loc = self.expect_identifier()?; 
@@ -1565,4 +1565,5 @@ use crate::lexer::Lexer;
         }
 
     }
+
 
