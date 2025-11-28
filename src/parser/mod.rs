@@ -1387,6 +1387,9 @@ impl Parser {
     }
     
     fn expect(&mut self, token: &Token) -> Result<(), String> {
+        let current_loc = self.current()?.clone();
+        let token = &current_loc.token;
+        let loc = self.get_loc(&current_loc);
         if self.check(token) {
             self.advance();
             Ok(())
@@ -1396,7 +1399,7 @@ impl Parser {
             } else {
                 format!("{:?}", self.tokens[self.position].token)
             };
-            Err(format!("Expected {:?}, found {}", token, current))
+            Err(format!("Expected {:?}, found {} at {}", token, current,loc))
         }
     }
 
@@ -1565,5 +1568,6 @@ use crate::lexer::Lexer;
         }
 
     }
+
 
 
