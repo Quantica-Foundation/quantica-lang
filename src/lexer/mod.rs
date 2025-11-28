@@ -217,7 +217,31 @@ impl Lexer {
         tokens.push(self.make_token(Token::Eof, 0));
         Ok(tokens)
     }
-    
+
+    fn skip_multiline_comment(&mut self) -> Result<(), String> {
+        let start_line = self.line;
+        
+        loop {
+            if self.is_at_end() {
+                return Err(format!(
+                    "Unterminated multiline comment starting at line {}",
+                    start_line
+                ));
+            }
+            
+            let ch = self.current_char()?;
+            
+            if ch == '*' && self.peek() == Some('/') {
+               
+                self.advance();
+                self.advance();
+                return Ok(());
+            }
+            
+            self.advance();
+        }
+    }
+        
     fn handle_indentation(&mut self, tokens: &mut Vec<TokenWithLocation>) -> Result<(), String> {
     let mut indent_level = 0;
     
@@ -1149,4 +1173,5 @@ mod tests {
     }
 
 }
+
 
