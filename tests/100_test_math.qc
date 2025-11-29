@@ -1,0 +1,168 @@
+// tests/stdlib_math_comprehensive.qc
+print("=== Running Comprehensive Math Library Tests ===")
+print("")
+
+import "stdlib/math.qc" as math
+
+mut test_count = 0
+mut passed_count = 0
+
+// Helper function to run tests
+func run_test(name: String, condition: Bool):
+    test_count = test_count + 1
+    if condition:
+        passed_count = passed_count + 1
+        print("✓ Test " + to_string(test_count) + ": " + name)
+    else:
+        print("✗ Test " + to_string(test_count) + " FAILED: " + name)
+
+func approx_equal(a: Float, b: Float, epsilon: Float) -> Bool:
+    return math.abs(a - b) < epsilon
+
+print("--- CONSTANTS TESTS (10 tests) ---")
+run_test("PI constant", approx_equal(math.PI, 3.141592653589793, 0.0001))
+run_test("TAU constant", approx_equal(math.TAU, 6.283185307179586, 0.0001))
+run_test("E constant", approx_equal(math.E, 2.718281828459045, 0.0001))
+run_test("PHI constant", approx_equal(math.PHI, 1.618033988749895, 0.0001))
+run_test("SQRT2 constant", approx_equal(math.SQRT2, 1.4142135623730951, 0.0001))
+run_test("SQRT3 constant", approx_equal(math.SQRT3, 1.7320508075688772, 0.0001))
+run_test("SQRT5 constant", approx_equal(math.SQRT5, 2.23606797749979, 0.0001))
+run_test("LN2 constant", approx_equal(math.LN2, 0.6931471805599453, 0.0001))
+run_test("LN10 constant", approx_equal(math.LN10, 2.302585092994046, 0.0001))
+run_test("LOG2E constant", approx_equal(math.LOG2E, 1.4426950408889634, 0.0001))
+
+print("")
+print("--- BASIC ARITHMETIC TESTS (15 tests) ---")
+run_test("floor(4.7)", approx_equal(math.floor(4.7), 4.0, 0.0001))
+run_test("floor(-4.7)", approx_equal(math.floor(-4.7), -5.0, 0.0001))
+run_test("abs(positive)", approx_equal(math.abs(10.5), 10.5, 0.0001))
+run_test("abs(negative)", approx_equal(math.abs(-10.5), 10.5, 0.0001))
+run_test("abs_int(positive)", math.abs_int(42) == 42)
+run_test("abs_int(negative)", math.abs_int(-42) == 42)
+run_test("sign(positive)", math.sign(5.5) == 1)
+run_test("sign(negative)", math.sign(-5.5) == -1)
+run_test("sign(zero)", math.sign(0.0) == 0)
+run_test("max(a, b)", approx_equal(math.max(3.5, 7.2), 7.2, 0.0001))
+run_test("min(a, b)", approx_equal(math.min(3.5, 7.2), 3.5, 0.0001))
+run_test("max3", approx_equal(math.max3(1.0, 5.0, 3.0), 5.0, 0.0001))
+run_test("min3", approx_equal(math.min3(1.0, 5.0, 3.0), 1.0, 0.0001))
+run_test("clamp(below min)", approx_equal(math.clamp(2.0, 5.0, 10.0), 5.0, 0.0001))
+run_test("clamp(above max)", approx_equal(math.clamp(15.0, 5.0, 10.0), 10.0, 0.0001))
+
+print("")
+print("--- POWER & EXPONENTIAL TESTS (12 tests) ---")
+run_test("sqrt(4)", approx_equal(math.sqrt(4.0), 2.0, 0.0001))
+run_test("sqrt(9)", approx_equal(math.sqrt(9.0), 3.0, 0.0001))
+run_test("cbrt(8)", approx_equal(math.cbrt(8.0), 2.0, 0.001))
+run_test("cbrt(-8)", approx_equal(math.cbrt(-8.0), -2.0, 0.001))
+run_test("exp(0)", approx_equal(math.exp(0.0), 1.0, 0.0001))
+run_test("exp(1)", approx_equal(math.exp(1.0), math.E, 0.0001))
+run_test("ln(1)", approx_equal(math.ln(1.0), 0.0, 0.0001))
+run_test("ln(E)", approx_equal(math.ln(math.E), 1.0, 0.001))
+run_test("log10(100)", approx_equal(math.log10(100.0), 2.0, 0.001))
+run_test("log2(8)", approx_equal(math.log2(8.0), 3.0, 0.001))
+run_test("pow(2, 3)", approx_equal(math.pow(2.0, 3.0), 8.0, 0.0001))
+run_test("pow(5, 2)", approx_equal(math.pow(5.0, 2.0), 25.0, 0.0001))
+
+print("")
+print("--- TRIGONOMETRIC TESTS (15 tests) ---")
+run_test("sin(0)", approx_equal(math.sin(0.0), 0.0, 0.0001))
+run_test("sin(PI/2)", approx_equal(math.sin(math.PI / 2.0), 1.0, 0.0001))
+run_test("sin(PI)", approx_equal(math.sin(math.PI), 0.0, 0.0001))
+run_test("cos(0)", approx_equal(math.cos(0.0), 1.0, 0.0001))
+run_test("cos(PI)", approx_equal(math.cos(math.PI), -1.0, 0.0001))
+run_test("cos(PI/2)", approx_equal(math.cos(math.PI / 2.0), 0.0, 0.0001))
+run_test("tan(0)", approx_equal(math.tan(0.0), 0.0, 0.0001))
+run_test("tan(PI/4)", approx_equal(math.tan(math.PI / 4.0), 1.0, 0.001))
+run_test("asin(0)", approx_equal(math.asin(0.0), 0.0, 0.001))
+run_test("asin(1)", approx_equal(math.asin(1.0), math.PI / 2.0, 0.001))
+run_test("acos(1)", approx_equal(math.acos(1.0), 0.0, 0.001))
+run_test("acos(0)", approx_equal(math.acos(0.0), math.PI / 2.0, 0.001))
+run_test("atan(0)", approx_equal(math.atan(0.0), 0.0, 0.001))
+run_test("atan(1)", approx_equal(math.atan(1.0), math.PI / 4.0, 0.001))
+run_test("atan2(1, 1)", approx_equal(math.atan2(1.0, 1.0), math.PI / 4.0, 0.001))
+
+print("")
+print("--- HYPERBOLIC TESTS (6 tests) ---")
+run_test("sinh(0)", approx_equal(math.sinh(0.0), 0.0, 0.0001))
+run_test("cosh(0)", approx_equal(math.cosh(0.0), 1.0, 0.0001))
+run_test("tanh(0)", approx_equal(math.tanh(0.0), 0.0, 0.0001))
+run_test("asinh(0)", approx_equal(math.asinh(0.0), 0.0, 0.001))
+run_test("acosh(1)", approx_equal(math.acosh(1.0), 0.0, 0.001))
+run_test("atanh(0)", approx_equal(math.atanh(0.0), 0.0, 0.001))
+
+print("")
+print("--- ROUNDING TESTS (8 tests) ---")
+run_test("ceil(4.3)", approx_equal(math.ceil(4.3), 5.0, 0.0001))
+run_test("ceil(-4.3)", approx_equal(math.ceil(-4.3), -4.0, 0.0001))
+run_test("round(4.5)", approx_equal(math.round(4.5), 5.0, 0.0001))
+run_test("round(4.4)", approx_equal(math.round(4.4), 4.0, 0.0001))
+run_test("round(-4.5)", approx_equal(math.round(-4.5), -4.0, 0.0001))
+run_test("trunc(4.9)", approx_equal(math.trunc(4.9), 4.0, 0.0001))
+run_test("trunc(-4.9)", approx_equal(math.trunc(-4.9), -4.0, 0.0001))
+run_test("frac(4.7)", approx_equal(math.frac(4.7), 0.7, 0.0001))
+
+print("")
+print("--- ANGULAR CONVERSION TESTS (4 tests) ---")
+run_test("radians(180)", approx_equal(math.radians(180.0), math.PI, 0.0001))
+run_test("radians(90)", approx_equal(math.radians(90.0), math.PI / 2.0, 0.0001))
+run_test("degrees(PI)", approx_equal(math.degrees(math.PI), 180.0, 0.0001))
+run_test("degrees(PI/2)", approx_equal(math.degrees(math.PI / 2.0), 90.0, 0.0001))
+
+print("")
+print("--- NUMBER THEORY TESTS (10 tests) ---")
+run_test("gcd(12, 8)", math.gcd(12, 8) == 4)
+run_test("gcd(17, 19)", math.gcd(17, 19) == 1)
+run_test("lcm(4, 6)", math.lcm(4, 6) == 12)
+run_test("factorial(0)", math.factorial(0) == 1)
+run_test("factorial(5)", math.factorial(5) == 120)
+run_test("combination(5, 2)", approx_equal(math.combination(5.0, 2.0), 10.0, 0.0001))
+run_test("permutation(5, 2)", math.permutation(5, 2) == 20)
+run_test("is_prime(7)", math.is_prime(7) == True)
+run_test("is_prime(8)", math.is_prime(8) == False)
+run_test("is_prime(2)", math.is_prime(2) == True)
+
+print("")
+print("--- DISTANCE & GEOMETRY TESTS (5 tests) ---")
+run_test("distance_2d(0,0,3,4)", approx_equal(math.distance_2d(0.0, 0.0, 3.0, 4.0), 5.0, 0.0001))
+run_test("distance_3d(0,0,0,1,1,1)", approx_equal(math.distance_3d(0.0, 0.0, 0.0, 1.0, 1.0, 1.0), math.sqrt(3.0), 0.001))
+run_test("manhattan(0,0,3,4)", approx_equal(math.manhattan(0.0, 0.0, 3.0, 4.0), 7.0, 0.0001))
+run_test("chebyshev(0,0,3,4)", approx_equal(math.chebyshev(0.0, 0.0, 3.0, 4.0), 4.0, 0.0001))
+run_test("hypot(3, 4)", approx_equal(math.hypot(3.0, 4.0), 5.0, 0.0001))
+
+print("")
+print("--- UTILITY FUNCTION TESTS (8 tests) ---")
+run_test("lerp(0, 10, 0.5)", approx_equal(math.lerp(0.0, 10.0, 0.5), 5.0, 0.0001))
+run_test("smoothstep(0, 1, 0.5)", approx_equal(math.smoothstep(0.0, 1.0, 0.5), 0.5, 0.01))
+run_test("map_range(5, 0, 10, 0, 100)", approx_equal(math.map_range(5.0, 0.0, 10.0, 0.0, 100.0), 50.0, 0.0001))
+run_test("is_finite(5.0)", math.is_finite(5.0) == True)
+run_test("sum_integers(10)", math.sum_integers(10) == 55)
+run_test("sum_squares(5)", math.sum_squares(5) == 55)
+run_test("fibonacci(7)", math.fibonacci(7) == 13)
+run_test("fibonacci(10)", math.fibonacci(10) == 55)
+
+print("")
+print("--- ADVANCED FUNCTION TESTS (7 tests) ---")
+run_test("sigmoid(0)", approx_equal(math.sigmoid(0.0), 0.5, 0.0001))
+run_test("relu(positive)", approx_equal(math.relu(5.0), 5.0, 0.0001))
+run_test("relu(negative)", approx_equal(math.relu(-5.0), 0.0, 0.0001))
+run_test("leaky_relu(positive)", approx_equal(math.leaky_relu(5.0, 0.01), 5.0, 0.0001))
+run_test("leaky_relu(negative)", approx_equal(math.leaky_relu(-5.0, 0.01), -0.05, 0.0001))
+run_test("sinc(0)", approx_equal(math.sinc(0.0), 1.0, 0.0001))
+run_test("gaussian(0, 0, 1)", approx_equal(math.gaussian(0.0, 0.0, 1.0), 0.3989, 0.001))
+
+print("")
+print("=== TEST SUMMARY ===")
+print("Total Tests: " + to_string(test_count))
+print("Passed: " + to_string(passed_count))
+print("Failed: " + to_string(test_count - passed_count))
+
+if passed_count == test_count:
+    print("")
+    print("✓✓✓ ALL TESTS PASSED! ✓✓✓")
+else:
+    print("")
+    print("✗✗✗ SOME TESTS FAILED ✗✗✗")
+
+print("")
+print("=== Math Library Test Suite Complete ===")
