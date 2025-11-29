@@ -335,14 +335,11 @@ fn compile_file(filename: &str,show_ast: bool, show_tokens: bool,verbose:bool) {
         println!("Program Output:");
         println!("{:-<60}", "");
     }
-    // Pass a reference to the Rc
     let start_time = Instant::now();
     let evaluation_result = Evaluator::evaluate_program(&ast, &env);
     let duration = start_time.elapsed();
-    
     println!("{:-<60}", "");
-    println!("⏱️  Interpreter Time: {:.6} seconds", duration.as_secs_f64());
-    
+    println!("Interpreter Time: {:.6} seconds", duration.as_secs_f64());
     match evaluation_result {
         Ok(_) => {
             println!("✓ Execution successful!");
@@ -546,21 +543,15 @@ fn run_jit_file(filename: &str, emit_llvm: bool, opt_level: OptimizationLevel, t
     } 
     
     println!("✨ Program Output:");
-    println!();
-    
-    // Flush stdout BEFORE executing JIT code
-    use std::io::Write;
-    let _ = std::io::stdout().flush();
-    
+    println!("{:-<60}", "");
+
     let start_time = Instant::now();
     compiler.run_jit()?;
     let duration = start_time.elapsed();
     
-    // Flush stdout AFTER JIT execution
-    let _ = std::io::stdout().flush();
+    println!("{:-<60}", "");
+    println!(" JIT Execution Time: {:.6} seconds", duration.as_secs_f64());
     
-    println!();
-    println!("⏱️  JIT Execution Time: {:.6} seconds", duration.as_secs_f64());
 
     Ok(())
 }
@@ -1096,4 +1087,7 @@ fn parse_opt_level(arg: &str) -> Result<OptimizationLevel, String> {
         _ => Err(format!("Unknown optimization flag: {}. Use -O0, -O1, -O2, or -O3.", arg)),
     }
 }
+
+//Made by M.Gurukasi from Quantica Foundation
+
 
