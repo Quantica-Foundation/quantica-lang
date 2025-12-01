@@ -9,6 +9,12 @@ mod codegen;
 mod linker;
 mod runtime;
 
+mod quantum_backend;
+mod hardware_integration;
+
+use hardware_integration::{HardwareExecutor, parse_hardware_config};
+use quantum_backend::QuantumConfig;
+
 use std::time::Instant;
 use crate::environment::Environment;
 use crate::evaluator::Evaluator;
@@ -53,37 +59,91 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut opt_level = OptimizationLevel::Default;
     let mut enable_lto = false;
     let mut target = CompilationTarget::HostCPU;
+    let mut hardware_config: Option<QuantumConfig> = None;
+    let mut list_devices = false;
 
 
-    for arg in args.iter().skip(1) {
-
-        if arg == "--ast" {                     
-            show_ast = true;
-        } else if arg == "--tokens" {          
-            show_tokens = true;
-        }else if arg == "--v"{
-            verbose=true;
-        } else if arg == "--emit-llvm" {
-            emit_llvm = true;
-        } else if arg == "--lto" { 
-            enable_lto = true;
-        
-        }else if arg.starts_with("--target") { 
-            let parts: Vec<&str> = arg.split('=').collect();
-            if parts.len() == 2 {
-                target = match parts[1].to_lowercase().as_str() {
-                    "spirv" => CompilationTarget::SPIRV,
-                    "xla"   => CompilationTarget::XLA,
-                    "host"  => CompilationTarget::HostCPU,
-                    _ => return Err(format!("Unknown target '{}'. Use spirv, xla, or host.", parts[1]).into()),
-                };
+    let mut i = 1;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--hardware" => {
+                hardware_config = parse_hardware_config(&args[i..]);
+                // Skip to after hardware arguments
+                i += 1;
+                while i < args.len() && (args[i] == "ibm" || args[i] == "google" || 
+                                        args[i] == "aws" || args[i] == "ionq" ||
+                                        args[i].starts_with("--device") || 
+                                        args[i].starts_with("--shots") ||
+                                        args[i].starts_with("--api-token")) {
+                    i += 1;
+                    if i > 0 && (args[i-1].starts_with("--device") || 
+                                args[i-1].starts_with("--shots") || 
+                                args[i-1].starts_with("--api-token")) {
+                        i += 1; // skip the value after the flag
+                    }
+                }
             }
-        } else if arg.starts_with("-O") { 
-            opt_level = parse_opt_level(arg)?; 
-        } else if arg == "--doc" || arg == "--repl" || arg == "--test" || arg == "--lex" || arg == "--compile" || arg == "--run" {
-            command = Some(arg);
-        } else if filename.is_none() {
-            filename = Some(arg);
+            "--list-devices" => {
+                list_devices = true;
+                i += 1;
+            }
+            "--ast" => { show_ast = true; i += 1; }
+            "--tokens" => { show_tokens = true; i += 1; }
+            "--v" => { verbose = true; i += 1; }
+            "--emit-llvm" => { emit_llvm = true; i += 1; }
+            "--lto" => { enable_lto = true; i += 1; }
+            _ if args[i].starts_with("--target=") => {
+                let parts: Vec<&str> = args[i].split('=').collect();
+                if parts.len() == 2 {
+                    target = match parts[1].to_lowercase().as_str() {
+                        "spirv" => CompilationTarget::SPIRV,
+                        "xla" => CompilationTarget::XLA,
+                        "host" => CompilationTarget::HostCPU,
+                        _ => return Err(format!("Unknown target '{}'", parts[1]).into()),
+                    };
+                }
+                i += 1;
+            }
+            _ if args[i].starts_with("-O") => {
+                opt_level = parse_opt_level(&args[i])?;
+                i += 1;
+            }
+            _ if args[i] == "--doc" || args[i] == "--repl" || args[i] == "--test" || 
+                args[i] == "--lex" || args[i] == "--compile" || args[i] == "--run" => {
+                command = Some(&args[i]);
+                i += 1;
+            }
+            _ if !args[i].starts_with("--") && filename.is_none() => {
+                filename = Some(&args[i]);
+                i += 1;
+            }
+            _ => i += 1,
+        }
+    }
+
+    if list_devices {
+        if let Some(config) = hardware_config {
+            use quantum_backend::BackendManager;
+            let backend_manager = BackendManager::new(config);
+            let devices = backend_manager.list_devices();
+            println!("📡 Available devices:");
+            for device in devices {
+                println!("   • {}", device);
+            }
+            return Ok(());
+        } else {
+            eprintln!("Error: --list-devices requires --hardware <provider>");
+            std::process::exit(1);
+        }
+    }
+
+    // Handle hardware execution mode
+    if let Some(config) = hardware_config {
+        if let Some(file) = filename {
+            return run_on_hardware(file, config);
+        } else {
+            eprintln!("Error: No input file specified for hardware execution");
+            std::process::exit(1);
         }
     }
 
@@ -335,11 +395,14 @@ fn compile_file(filename: &str,show_ast: bool, show_tokens: bool,verbose:bool) {
         println!("Program Output:");
         println!("{:-<60}", "");
     }
+    // Pass a reference to the Rc
     let start_time = Instant::now();
     let evaluation_result = Evaluator::evaluate_program(&ast, &env);
     let duration = start_time.elapsed();
+    
     println!("{:-<60}", "");
-    println!("Interpreter Time: {:.6} seconds", duration.as_secs_f64());
+    println!("⏱️  Interpreter Time: {:.6} seconds", duration.as_secs_f64());
+    
     match evaluation_result {
         Ok(_) => {
             println!("✓ Execution successful!");
@@ -375,11 +438,20 @@ fn print_help() {
     println!("    -O0, -O1, -O2, -O3   Set optimization level");
     println!("    --target=<target>    Compilation target (host, spirv, xla)");
     println!();
+    println!("QUANTUM HARDWARE OPTIONS:");
+    println!("    --hardware <provider>    Run on quantum hardware (ibm, aws, ionq)");
+    println!("    --device <name>          Specify device name");
+    println!("    --shots <number>         Number of measurements (default: 1024)");
+    println!("    --api-token <token>      API authentication token");
+    println!("    --list-devices           List available quantum devices");
+    println!();
     println!("EXAMPLES:");
     println!("    quantica hello.qc             # Run a Quantica program");
     println!("    quantica --compile app.qc     # Compile to executable");
     println!("    quantica --repl               # Start REPL");
     println!("    quantica --doc lib.qc         # Generate documentation");
+    println!("    quantica --hardware ibm --device ibmq_lima bell.qc   # Run on IBM");
+    println!("    quantica --hardware ibm --list-devices               # List devices");
 }
 fn compile_file_llvm(filename: &str, output_file: &str, emit_llvm: bool, opt_level: OptimizationLevel,enable_lto: bool,target: CompilationTarget) -> Result<(), String> {
     println!("📄 Compiling: {}\n", filename);
@@ -543,15 +615,21 @@ fn run_jit_file(filename: &str, emit_llvm: bool, opt_level: OptimizationLevel, t
     } 
     
     println!("✨ Program Output:");
-    println!("{:-<60}", "");
-
+    println!();
+    
+    // Flush stdout BEFORE executing JIT code
+    use std::io::Write;
+    let _ = std::io::stdout().flush();
+    
     let start_time = Instant::now();
     compiler.run_jit()?;
     let duration = start_time.elapsed();
     
-    println!("{:-<60}", "");
-    println!(" JIT Execution Time: {:.6} seconds", duration.as_secs_f64());
+    // Flush stdout AFTER JIT execution
+    let _ = std::io::stdout().flush();
     
+    println!();
+    println!("⏱️  JIT Execution Time: {:.6} seconds", duration.as_secs_f64());
 
     Ok(())
 }
@@ -1088,6 +1166,62 @@ fn parse_opt_level(arg: &str) -> Result<OptimizationLevel, String> {
     }
 }
 
-//Made by M.Gurukasi from Quantica Foundation
 
+fn run_on_hardware(filename: &str, config: QuantumConfig) -> Result<(), Box<dyn std::error::Error>> {
+    println!("🚀 Executing on Quantum Hardware: {:?}\n", config.provider);
+    println!("📄 File: {}", filename);
+    println!("🎯 Device: {}", config.device_name.as_ref().unwrap_or(&"default".to_string()));
+    println!("🎲 Shots: {}\n", config.shots);
+
+    // Read source
+    let source = fs::read_to_string(filename)
+        .map_err(|e| format!("Failed to read file: {}", e))?;
+
+    // Lex
+    println!("🔤 Phase 1: Lexical Analysis");
+    let mut lexer = Lexer::new(&source);
+    let tokens = lexer.tokenize()
+        .map_err(|e| format!("Lexer error: {}", e))?;
+
+    // Parse
+    println!("🌳 Phase 2: Syntax Analysis");
+    let mut parser = Parser::new(tokens);
+    let ast = parser.parse()
+        .map_err(|e| format!("Parser error: {}", e))?;
+
+    // Type Check
+    println!("🔬 Phase 3: Type Checking");
+    TypeChecker::check_program(&ast)
+        .map_err(|e| format!("Type error: {}", e))?;
+    println!("✓ Type check succeeded!\n");
+
+    // Execute on hardware
+    println!("📡 Phase 4: Hardware Execution");
+    let env = std::rc::Rc::new(std::cell::RefCell::new(Environment::new()));
+    let mut executor = HardwareExecutor::new(config);
+    
+    let result = executor.execute_on_hardware(&ast, &env)
+        .map_err(|e| format!("Hardware execution error: {}", e))?;
+
+    if result.success {
+        println!("\n✅ Hardware execution successful!");
+        
+        // Show top results
+        if !result.counts.is_empty() {
+            println!("\n📊 Measurement Results:");
+            let mut sorted: Vec<_> = result.counts.iter().collect();
+            sorted.sort_by(|a, b| b.1.cmp(a.1));
+            
+            for (i, (bitstring, count)) in sorted.iter().take(10).enumerate() {
+                let prob = **count as f64 / result.shots as f64;
+                println!("  {}. |{}⟩: {} ({:.2}%)", i + 1, bitstring, count, prob * 100.0);
+            }
+        }
+    } else {
+        eprintln!("❌ Hardware execution failed: {}", 
+                  result.error_message.unwrap_or("Unknown error".to_string()));
+    }
+
+    Ok(())
+}
 
