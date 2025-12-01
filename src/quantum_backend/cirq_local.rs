@@ -11,12 +11,12 @@ impl CirqLocalBackend {
         CirqLocalBackend
     }
     
-    // Helper to get the correct Python command for the platform
+    
     fn get_python_command() -> &'static str {
         if cfg!(target_os = "windows") {
-            "python"  // Windows typically uses 'python'
+            "python"
         } else {
-            "python3" // Unix-like systems use 'python3'
+            "python3" 
         }
     }
     
@@ -111,4 +111,5 @@ impl QuantumBackend for CirqLocalBackend {
     fn optimize_circuit(&self, circuit: &HardwareCircuit) -> HardwareCircuit {
         circuit.clone()
     }
+
 }
