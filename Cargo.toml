@@ -9,6 +9,9 @@ name = "quantica"
 path = "src/lib.rs"
 crate-type = ["staticlib","rlib"]
 
+
+
+
 [[bin]]
 name = "quantica"
 path = "src/main.rs"
@@ -18,14 +21,16 @@ num-complex = "0.4.6"
 rand = "0.8.5"
 inkwell = { version = "0.6.0", features = ["llvm18-1"] }
 libc = "0.2"
-actix-web = "4" 
-serde = { version = "1.0", features = ["derive"] }
+actix-web = "4"
+serde = { version = "1.0", features = ["derive"] } #JSON
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+reqwest = { version = "0.11", features = ["json", "blocking"] }
+serde_json = "1.0"
 
 [profile.dev]
 
 debug = 0
 strip = "symbols"
-codegen-units = 1 
-overflow-checks = false 
+codegen-units = 1
+overflow-checks = false
 lto = "fat"
