@@ -13,7 +13,7 @@
 
 Most quantum languages are just Python libraries. Quantica is a **compiled language** where quantum gates, measurements, and circuits are first-class citizens.
 
-* **Native Quantum Syntax:** Allocate registers (`quantum q[2]`) and apply gates (`apply H(q[0])`) directly in the language.
+* **Native Quantum Syntax:** Allocate registers (`quantum q[2]`) and apply gates (`apply Hadamard(q[0])`) directly in the language.
 * **Hybrid Runtime:** Mix classical logic (`if`, `while`, `functions`) with quantum state manipulation seamlessly.
 * **Gate Modifiers:** Dynamically apply `dagger` (inverse) and `controlled` modifiers to *any* gate or circuit.
 * **LLVM Backend:** Compiles to highly optimized native machine code via LLVM 18 for maximum performance.
