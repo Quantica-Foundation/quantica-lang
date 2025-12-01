@@ -8,6 +8,8 @@ pub mod type_checker;
 pub mod doc_generator;
 pub mod codegen;
 pub mod runtime;
+pub mod quantum_backend;
+pub mod hardware_integration;
 pub use runtime::{
     quantica_rt_new_state,
     quantica_rt_debug_state,
@@ -16,3 +18,4 @@ pub use runtime::{
 };
 
 pub mod linker;
+
