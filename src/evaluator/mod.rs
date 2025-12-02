@@ -1,17 +1,17 @@
 // src/evaluator/mod.rs
-use std::collections::HashMap; 
+use std::collections::HashMap;
 use crate::parser::ast::ASTNode;
 use crate::parser::ast::Loc;
 use crate::environment::{Environment, RuntimeValue, GateDefinition};
 use std::rc::Rc;
-use crate::lexer::Lexer; 
+use crate::lexer::Lexer;
 use crate::parser::Parser;
-use std::fs; 
+use std::fs;
 use std::cell::RefCell;
 use rand::Rng;
-use crate::parser::ast::ImportSpec; 
-use crate::parser::ast::ImportPath; 
-use std::path::PathBuf; 
+use crate::parser::ast::ImportSpec;
+use crate::parser::ast::ImportPath;
+use std::path::PathBuf;
 use crate::parser::ast::BinaryOperator;
 
 use num_complex::Complex;
@@ -33,7 +33,7 @@ impl Evaluator {
         }
     }
 
-    
+
     pub fn evaluate(node: &ASTNode, env: &Rc<RefCell<Environment>>) -> Result<RuntimeValue, String> {
         match node {
             ASTNode::LetDeclaration { name, value, .. } => Self::eval_let_declaration(name, value, env),
@@ -60,18 +60,18 @@ impl Evaluator {
             ASTNode::FromImport { path, spec } => {
                  Self::eval_from_import(path, spec, env)
             }
-            ASTNode::If { condition, then_block, elif_blocks, else_block } => 
+            ASTNode::If { condition, then_block, elif_blocks, else_block } =>
                 Self::eval_if_statement(condition, then_block, elif_blocks, else_block, env),
-            ASTNode::While { condition, body } => 
+            ASTNode::While { condition, body } =>
                 Self::eval_while_statement(condition, body, env),
-            ASTNode::For { variable, iterator, body } => 
+            ASTNode::For { variable, iterator, body } =>
                 Self::eval_for_statement(variable, iterator, body, env),
-            ASTNode::Block(statements) => 
+            ASTNode::Block(statements) =>
                 Self::eval_block(statements, env),
-            ASTNode::Range { start, end, inclusive } => 
+            ASTNode::Range { start, end, inclusive } =>
                 Self::eval_range_expression(start, end, *inclusive, env),
 
-            ASTNode::QuantumDeclaration { name, size, initial_state } => 
+            ASTNode::QuantumDeclaration { name, size, initial_state } =>
                 Self::eval_quantum_declaration(name, size, initial_state, env),
             ASTNode::QuantumKet(s) => {
                 let size = 1;
@@ -81,16 +81,16 @@ impl Evaluator {
                     state: Rc::new(RefCell::new(state_vec))
                 })
             },
-            
+
             ASTNode::Apply { gate_expr, arguments, loc } => {
                 Self::eval_apply_statement(gate_expr, arguments, loc, env)
             }
-            
+
             ASTNode::Gate { .. } | ASTNode::Controlled { .. } | ASTNode::Dagger { .. } => {
                 Err("Gate expressions (like 'X' or 'controlled(X)') can only be used inside an 'apply' statement.".to_string())
             }
 
-            ASTNode::Measure(target_expr) => 
+            ASTNode::Measure(target_expr) =>
                 Self::eval_measure(target_expr, env),
             ASTNode::ArrayAccess { array, index, loc } =>
                 Self::eval_array_access(array, index, loc, env),
@@ -144,11 +144,11 @@ impl Evaluator {
         _ => true,
     }
 }
-    
-    
-    
+
+
+
     fn eval_quantum_declaration(
-        name: &str, 
+        name: &str,
         size_expr: &Option<Box<ASTNode>>,
         initial_state_expr: &Option<Box<ASTNode>>,
         env: &Rc<RefCell<Environment>>,
@@ -162,21 +162,21 @@ impl Evaluator {
             if size > 20 {
                 return Err(format!("Runtime Error: Register size {} is too large to simulate.", size));
             }
-            
+
             let state_map = Self::default_state_vector(size)?;
             RuntimeValue::QuantumRegister { size, state: Rc::new(RefCell::new(state_map)) }
         } else if let Some(expr) = initial_state_expr {
             let state_val = Self::evaluate(expr, env)?;
             match state_val {
-                
+
                 RuntimeValue::QuantumRegister { size, state } => {
                     RuntimeValue::QuantumRegister { size, state }
                 }
                 _ => return Err(format!("Runtime Error: Initial state for a quantum register must be a register, got {:?}", state_val.type_name())),
             }
         } else {
-         
-            let size = 1; 
+
+            let size = 1;
             let state_map = Self::default_state_vector(size)?;
             RuntimeValue::QuantumRegister { size, state: Rc::new(RefCell::new(state_map)) }
         };
@@ -206,9 +206,9 @@ impl Evaluator {
 
     fn default_state_vector(size: usize) -> Result<HashMap<usize, (f64, f64)>, String> {
         if size == 0 { return Err("Runtime Error: Quantum register size must be > 0".to_string()); }
-       
+
         let mut state = HashMap::new();
-        state.insert(0, (1.0, 0.0)); 
+        state.insert(0, (1.0, 0.0));
         Ok(state)
     }
 
@@ -225,7 +225,7 @@ impl Evaluator {
         Ok(state)
     }
 
-   
+
     fn complex_mul((a, b): (f64, f64), (c, d): (f64, f64)) -> (f64, f64) {
         (a * c - b * d, a * d + b * c)
     }
@@ -242,22 +242,22 @@ impl Evaluator {
     fn complex_norm_sq((a, b): (f64, f64)) -> f64 {
         a * a + b * b
     }
-    
-    
+
+
     fn eval_apply_statement(
         gate_expr_node: &ASTNode,
         arg_nodes: &[ASTNode],
         loc: &Loc,
         env: &Rc<RefCell<Environment>>,
     ) -> Result<RuntimeValue, String> {
-        
-       
+
+
         let mut qubit_args = Vec::new();
         for arg_node in arg_nodes {
             qubit_args.push(Self::evaluate(arg_node, env)?);
         }
 
-      
+
         let gate_val = Self::eval_gate_expression(gate_expr_node, env)?;
 
         let (base_name, is_dagger, num_controls) = match gate_val {
@@ -265,11 +265,11 @@ impl Evaluator {
             _ => return Err(format!("Runtime Error at {}: Expression is not a valid gate.", loc)),
         };
 
-        
+
         let mut controls = Vec::new();
         let mut targets = Vec::new();
-        
-        
+
+
         let mut state_rc: Option<Rc<RefCell<HashMap<usize, (f64, f64)>>>> = None;
         let mut reg_size: Option<usize> = None;
 
@@ -278,10 +278,10 @@ impl Evaluator {
         }
 
         let (_control_args, _target_args) = qubit_args.split_at(num_controls);
-        
+
         for (i, qubit_val) in qubit_args.iter().enumerate() {
             let (q_state_rc, q_index, q_size) = match qubit_val {
-                
+
                 RuntimeValue::Qubit { state, index, size } => (state.clone(), *index, *size),
                 _ => return Err(format!("Runtime Error at {}: Gate arguments must be Qubits, but argument {} was {}.", loc, i+1, qubit_val.type_name())),
             };
@@ -294,19 +294,19 @@ impl Evaluator {
                     return Err(format!("Runtime Error at {}: All qubits in an 'apply' statement must be from the same register.", loc));
                 }
             }
-            
+
             if i < num_controls {
                 controls.push(q_index);
             } else {
                 targets.push(q_index);
             }
         }
-        
-      
+
+
         let mut params = Vec::new();
         Self::extract_gate_params(gate_expr_node, &mut params, env)?;
 
-   
+
         let gate_def = GateDefinition {
             name: base_name,
             params,
@@ -315,12 +315,12 @@ impl Evaluator {
             register_size: reg_size.unwrap_or(0),
             state_rc: state_rc.unwrap(),
         };
-        
-   
+
+
         Self::apply_multi_controlled_gate(gate_def, is_dagger)
     }
 
-    
+
     fn eval_gate_expression(
         node: &ASTNode,
         env: &Rc<RefCell<Environment>>
@@ -361,7 +361,7 @@ impl Evaluator {
                         Ok(RuntimeValue::Gate {
                             base_name,
                             is_dagger,
-                            num_controls: num_controls + 1, 
+                            num_controls: num_controls + 1,
                         })
                     }
                     _ => Err("Internal Error: 'controlled' did not receive a valid gate.".to_string())
@@ -371,7 +371,7 @@ impl Evaluator {
         }
     }
 
-    
+
     fn extract_gate_params(
         node: &ASTNode,
         params: &mut Vec<f64>,
@@ -406,21 +406,21 @@ impl Evaluator {
             }
 
             ASTNode::FunctionCall { callee, arguments, loc, .. } => {
-               
+
                 let gate_name = match &**callee {
                     ASTNode::Identifier { name, .. } => name.to_lowercase(),
                     _ => return Err(format!("Runtime Error at {}: Gate expression must be a simple identifier inside the call.", loc)),
                 };
-                
-              
+
+
                 for arg_node in arguments.iter() {
                     let arg_val = Self::evaluate(arg_node, env)?;
                     let float_param = match arg_val {
                         RuntimeValue::Float(f) => f,
                         RuntimeValue::Int(i) => i as f64,
                         _ => {
-                          
-                            break; 
+
+                            break;
                         }
                     };
                     params.push(float_param);
@@ -428,28 +428,28 @@ impl Evaluator {
                 Ok(())
             }
 
-            
+
             _ => Ok(())
         }
     }
 
 
-   
+
     pub fn apply_multi_controlled_gate(
         gate: GateDefinition,
         is_dagger: bool
     ) -> Result<RuntimeValue, String> {
-        
-        
+
+
         let is_native_2qubit = matches!(
-            gate.name.as_str(), 
+            gate.name.as_str(),
             "cphase" | "cnot" | "cz" | "cx" | "cy" | "swap"
         );
-        
+
         if is_native_2qubit && gate.controls.is_empty() && gate.targets.len() == 2 {
             return Self::apply_native_2qubit_gate(gate, is_dagger);
         }
-        
+
         let matrix = Self::get_gate_matrix(&gate.name, &gate.params, is_dagger)?;
 
         let mut control_mask = 0;
@@ -471,31 +471,31 @@ impl Evaluator {
         if gate.targets.len() > 1 {
             return Err("Runtime Error: Multi-target gates with additional controls are not yet supported.".to_string());
         }
-        
+
         let target_idx = gate.targets[0];
         let target_mask = 1 << target_idx;
 
         let mut state_map_guard = gate.state_rc.borrow_mut();
         let old_state_map = &*state_map_guard;
         let mut new_state_map = HashMap::new();
-        
+
 
         let mut processed = std::collections::HashSet::new();
 
-     
+
         for (&basis_state, &amp_tuple) in old_state_map.iter() {
             if processed.contains(&basis_state) {
                 continue;
             }
 
-     
+
             if (basis_state & control_mask) == control_mask {
-                
-              
-                
-             
+
+
+
+
                 let partner_state = basis_state ^ target_mask;
-          
+
                 let amp_self_tuple = amp_tuple;
                 let amp_partner_tuple = old_state_map.get(&partner_state).cloned().unwrap_or((0.0, 0.0));
 
@@ -504,42 +504,42 @@ impl Evaluator {
 
                 let (amp0, amp1, idx0, idx1);
 
-             
+
                 if (basis_state & target_mask) == 0 {
-                
+
                     amp0 = amp_self;
                     amp1 = amp_partner;
                     idx0 = basis_state;
                     idx1 = partner_state;
                 } else {
-            
+
                     amp0 = amp_partner;
                     amp1 = amp_self;
                     idx0 = partner_state;
                     idx1 = basis_state;
                 }
 
-            
+
                 let new_amp0 = matrix[0][0] * amp0 + matrix[0][1] * amp1;
                 let new_amp1 = matrix[1][0] * amp0 + matrix[1][1] * amp1;
 
-              
+
                 Self::insert_if_nonzero(&mut new_state_map, idx0, new_amp0);
                 Self::insert_if_nonzero(&mut new_state_map, idx1, new_amp1);
 
-          
+
                 processed.insert(idx0);
                 processed.insert(idx1);
-                
-                
+
+
 
             } else {
-                
+
                 new_state_map.insert(basis_state, amp_tuple);
                 processed.insert(basis_state);
             }
         }
-        
+
         *state_map_guard = new_state_map;
         Ok(RuntimeValue::None)
     }
@@ -548,32 +548,32 @@ impl Evaluator {
         gate: GateDefinition,
         is_dagger: bool
     ) -> Result<RuntimeValue, String> {
-        
+
         if gate.targets.len() != 2 {
             return Err(format!("Runtime Error: Gate '{}' requires exactly 2 qubits.", gate.name));
         }
-        
+
         let control_idx = gate.targets[0];
         let target_idx = gate.targets[1];
-        
+
         if control_idx == target_idx {
             return Err("Runtime Error: Control and target qubits must be different.".to_string());
         }
-        
+
         let control_mask = 1 << control_idx;
         let target_mask = 1 << target_idx;
-        
+
         let mut state_map_guard = gate.state_rc.borrow_mut();
-        
+
         match gate.name.as_str() {
             "cphase" => {
                 let phi = gate.params.get(0).cloned().unwrap_or(0.0);
                 let angle = if is_dagger { -phi } else { phi };
                 let phase_factor = C64::from_polar(1.0, angle);
 
-              
+
                 for (&basis_state, amp_tuple) in state_map_guard.iter_mut() {
-                 
+
                     if (basis_state & control_mask) != 0 && (basis_state & target_mask) != 0 {
                         let amp = C64::new(amp_tuple.0, amp_tuple.1);
                         let new_amp = amp * phase_factor;
@@ -586,13 +586,13 @@ impl Evaluator {
                 for (&basis_state, &amp_tuple) in state_map_guard.iter() {
                     let bit_a = (basis_state & control_mask) != 0;
                     let bit_b = (basis_state & target_mask) != 0;
-                    
+
                     if bit_a != bit_b {
-                    
+
                         let swapped_idx = basis_state ^ control_mask ^ target_mask;
                         new_state_map.insert(swapped_idx, amp_tuple);
                     } else {
-                      
+
                         new_state_map.insert(basis_state, amp_tuple);
                     }
                 }
@@ -601,21 +601,21 @@ impl Evaluator {
             "cnot" | "cx" => {
                 let mut new_state_map = HashMap::new();
                 for (&basis_state, &amp_tuple) in state_map_guard.iter() {
-                
+
                     if (basis_state & control_mask) != 0 {
-                        let swapped_idx = basis_state ^ target_mask; 
+                        let swapped_idx = basis_state ^ target_mask;
                         new_state_map.insert(swapped_idx, amp_tuple);
                     } else {
-                       
+
                         new_state_map.insert(basis_state, amp_tuple);
                     }
                 }
                 *state_map_guard = new_state_map;
             }
             "cz" => {
-             
+
                 for (&basis_state, amp_tuple) in state_map_guard.iter_mut() {
-                
+
                     if (basis_state & control_mask) != 0 && (basis_state & target_mask) != 0 {
                         *amp_tuple = (-amp_tuple.0, -amp_tuple.1);
                     }
@@ -625,22 +625,22 @@ impl Evaluator {
                 return Err(format!("Runtime Error: Native 2-qubit gate '{}' not implemented.", gate.name));
             }
         }
-        
+
         Ok(RuntimeValue::None)
     }
 
-   
+
     fn get_gate_matrix(
         name: &str,
-        params: &[f64], 
+        params: &[f64],
         is_dagger: bool
     ) -> Result<[[C64; 2]; 2], String> {
-        
+
         let i = C64::new(0.0, 1.0);
-        let eff_dagger = if is_dagger { -1.0 } else { 1.0 }; 
+        let eff_dagger = if is_dagger { -1.0 } else { 1.0 };
 
         match name {
-           
+
             "x" | "not" | "cnot" | "ccx" | "toffoli" => {
                 Ok([ [C64::new(0.0, 0.0), C64::new(1.0, 0.0)],
                      [C64::new(1.0, 0.0), C64::new(0.0, 0.0)] ])
@@ -665,7 +665,7 @@ impl Evaluator {
                 Ok([ [C64::new(1.0, 0.0), C64::new(0.0, 0.0)],
                      [C64::new(0.0, 0.0), C64::from_polar(1.0, angle)] ])
             },
-            
+
 
             "rx" => {
                 let theta = params.get(0).cloned().unwrap_or(0.0) * eff_dagger;
@@ -689,7 +689,7 @@ impl Evaluator {
             }
             "cphase" => {
                 let phi = params.get(0).cloned().unwrap_or(0.0) * eff_dagger;
-              
+
                 Ok([ [C64::new(1.0, 0.0), C64::new(0.0, 0.0)],
                      [C64::new(0.0, 0.0), C64::from_polar(1.0, phi)] ])
             }
@@ -697,64 +697,64 @@ impl Evaluator {
                 if params.len() < 3 { return Err("U gate requires theta, phi, lambda.".to_string()); }
                 let (t, p, l) = (params[0] * eff_dagger, params[1] * eff_dagger, params[2] * eff_dagger);
                 let t_2 = t / 2.0;
-                
+
                 let c00 = C64::new(t_2.cos(), 0.0);
                 let c01 = C64::from_polar(-t_2.sin(), l);
                 let c10 = C64::from_polar(t_2.sin(), p);
                 let c11 = C64::from_polar(t_2.cos(), p + l);
-                
+
                 Ok([ [c00, c01], [c10, c11] ])
             }
-        
-            
+
+
             _ => Err(format!("Runtime Error: Unknown gate name '{}' for matrix generation.", name))
         }
     }
-    
+
 
     fn eval_measure(
         target_expr: &Box<ASTNode>,
         env: &Rc<RefCell<Environment>>,
     ) -> Result<RuntimeValue, String> {
-        
+
         let target_val = Self::evaluate(target_expr, env)?;
         let (state_rc, target_index, reg_size) = match target_val {
-         
+
             RuntimeValue::Qubit { state, index, size } => (state, index, size),
             _ => return Err(format!("Runtime Error: 'measure' can only be used on a single Qubit, got {}.", target_val.type_name())),
         };
-        
+
         Self::perform_measurement(&state_rc, target_index, reg_size)
     }
 
     fn perform_measurement(
-        state_rc: &Rc<RefCell<HashMap<usize, (f64, f64)>>>, 
+        state_rc: &Rc<RefCell<HashMap<usize, (f64, f64)>>>,
         target_index: usize,
         total_size: usize,
     ) -> Result<RuntimeValue, String> {
-        
+
         let mut state_map_guard = state_rc.borrow_mut();
         let old_state_map = &*state_map_guard;
 
         if target_index >= total_size {
             return Err(format!("Runtime Error: Qubit index {} is out of bounds for size {}.", target_index, total_size));
         }
-        
+
         let target_mask = 1 << target_index;
         let mut prob0 = 0.0;
-        
-     
+
+
         for (&basis_state, &amp_tuple) in old_state_map.iter() {
-            if (basis_state & target_mask) == 0 { 
+            if (basis_state & target_mask) == 0 {
                 prob0 += amp_tuple.0.powi(2) + amp_tuple.1.powi(2);
             }
         }
-        
+
         let mut rng = rand::thread_rng();
         let rand_val: f64 = rng.gen_range(0.0..1.0);
         let measured_result: i64;
         let probability_of_outcome: f64;
-        
+
         if rand_val < prob0 {
             measured_result = 0;
             probability_of_outcome = prob0;
@@ -764,36 +764,36 @@ impl Evaluator {
         }
 
         let norm_factor = if probability_of_outcome.abs() < 1e-9 { 1.0 } else { 1.0 / probability_of_outcome.sqrt() };
-        
+
         let mut new_state_map = HashMap::new();
-        
-       
+
+
         for (&basis_state, &amp_tuple) in old_state_map.iter() {
             let bit_at_index = (basis_state >> target_index) & 1;
-            
-           
+
+
             if bit_at_index as i64 == measured_result {
                 let (real, imag) = amp_tuple;
                 let normalized_amp = Self::complex_scalar_mul((real, imag), norm_factor);
                 new_state_map.insert(basis_state, normalized_amp);
             }
-          
+
         }
 
-       
+
         *state_map_guard = new_state_map;
-        
+
         Ok(RuntimeValue::Int(measured_result))
     }
 
-  
+
     fn eval_array_access(
         collection_expr: &Box<ASTNode>,
         index_expr: &Box<ASTNode>,
         loc: &Loc,
         env: &Rc<RefCell<Environment>>,
     ) -> Result<RuntimeValue, String> {
-        
+
         let collection_val = Self::evaluate(collection_expr, env)?;
         let index_val = Self::evaluate(index_expr, env)?;
 
@@ -805,7 +805,7 @@ impl Evaluator {
                 };
                 elements.get(index).map(|e| e.borrow().clone()).ok_or(format!("Runtime Error at {}: Array index {} out of bounds for array of size {}.", loc, index, elements.len()))
             }
-    
+
             RuntimeValue::QuantumRegister { size, state } => {
                 let index = match index_val {
                     RuntimeValue::Int(i) => i,
@@ -818,12 +818,12 @@ impl Evaluator {
                     ));
                 }
                 Ok(RuntimeValue::Qubit {
-                    state: state.clone(), 
+                    state: state.clone(),
                     index: index as usize,
-                    size, 
+                    size,
                 })
             }
-           
+
             RuntimeValue::Dict(map) => {
                 let key = Self::value_to_string_key(index_val)?;
                 map.get(&key).map(|v| v.borrow().clone()).ok_or(format!("Runtime Error at {}: Key '{}' not found in dictionary.", loc, key))
@@ -842,18 +842,18 @@ impl Evaluator {
 ) -> Result<RuntimeValue, String> {
     let object = Self::evaluate(object_expr, env)?;
     match object {
-       
+
         RuntimeValue::Module(module_env) => {
-        
+
             match module_env.borrow().get(member) {
                 Some(value_rc) => Ok(value_rc.borrow().clone()),
                 None => Err(format!(
-                    "Runtime Error: Module does not have a member named '{}'", 
+                    "Runtime Error: Module does not have a member named '{}'",
                     member
                 ))
             }
         }
-        
+
         RuntimeValue::QuantumRegister { size, .. } => {
             match member {
                 "length" => Ok(RuntimeValue::Int(size as i64)),
@@ -885,7 +885,7 @@ impl Evaluator {
     index: usize,
     amp: C64,
 ) {
- 
+
     if amp.norm_sqr() > 1e-12 {
         state_map.insert(index, (amp.re, amp.im));
     }
@@ -904,7 +904,7 @@ impl Evaluator {
     match (start_val, end_val) {
         (RuntimeValue::Int(start), RuntimeValue::Int(end)) => {
             let range: Vec<i64> = if inclusive { (start..=end).collect() } else { (start..end).collect() };
-            Ok(RuntimeValue::Range(range)) 
+            Ok(RuntimeValue::Range(range))
         }
         _ => Err("Runtime Error: Range boundaries must be integers.".to_string()),
     }
@@ -990,7 +990,7 @@ impl Evaluator {
 
     fn eval_function_call(
         callee_expr: &ASTNode,
-        arguments: &[ASTNode], 
+        arguments: &[ASTNode],
         loc: &Loc,
         env: &Rc<RefCell<Environment>>,
         is_dagger: bool
@@ -1005,7 +1005,7 @@ impl Evaluator {
                 if is_dagger {
                     return Err(format!("Runtime Error at {}: Dagger is not supported for built-in function '{}'.", loc, func_name));
                 }
-                
+
                 match func_name.as_str() {
                     "print" => Self::builtin_print(evaluated_args),
                     "echo" => Self::builtin_echo(evaluated_args),
@@ -1014,7 +1014,7 @@ impl Evaluator {
                     "type_of" => Self::builtin_type_of(evaluated_args),
                     "to_string" => Self::builtin_to_string(evaluated_args),
                     "to_int" => Self::builtin_to_int(evaluated_args),
-                    "to_float" => Self::builtin_to_float(evaluated_args), 
+                    "to_float" => Self::builtin_to_float(evaluated_args),
                     "len" => Self::builtin_len(evaluated_args),
                     "debug_state" => Self::builtin_debug_state(evaluated_args),
                     "assert" => Self::builtin_assert(evaluated_args),
@@ -1022,7 +1022,7 @@ impl Evaluator {
                 }
             }
             RuntimeValue::Function { parameters, body, env: func_env } => {
-                
+
                 let mut function_scope = Environment::new_enclosed(func_env);
                 if parameters.len() != evaluated_args.len() {
                     return Err(format!(
@@ -1089,28 +1089,28 @@ impl Evaluator {
 }
 
     fn eval_daggered_block(
-    statements: &Vec<ASTNode>, 
+    statements: &Vec<ASTNode>,
     env: &Rc<RefCell<Environment>>
 ) -> Result<RuntimeValue, String> {
-    
+
     let mut last_result = RuntimeValue::None;
-    
+
     for stmt in statements.iter().rev() {
         let flipped_node = match stmt {
             ASTNode::Apply { gate_expr, arguments, loc } => {
                 let daggered_gate_expr = match &**gate_expr {
-                
+
                     ASTNode::Gate { name, loc, .. } => {
                         ASTNode::Dagger {
                             gate_expr: Box::new(ASTNode::Gate { name: name.clone(), loc: *loc }),
                             loc: *loc,
                         }
                     }
-                 
+
                     ASTNode::Dagger { gate_expr, .. } => {
                         *gate_expr.clone()
                     }
-               
+
                     ASTNode::Controlled { gate_expr, loc } => {
                         let inner_gate = match &**gate_expr {
                             ASTNode::Gate { name, loc, .. } => {
@@ -1139,7 +1139,7 @@ impl Evaluator {
                             loc: *loc,
                         }
                     }
-                  
+
                     ASTNode::ParameterizedGate { name, parameters, loc } => {
                         ASTNode::Dagger {
                             gate_expr: Box::new(ASTNode::ParameterizedGate {
@@ -1152,7 +1152,7 @@ impl Evaluator {
                     }
                     _ => return Err("Daggering complex gate expressions is not yet supported.".to_string())
                 };
-                
+
                 ASTNode::Apply {
                     gate_expr: Box::new(daggered_gate_expr),
                     arguments: arguments.clone(),
@@ -1171,7 +1171,7 @@ impl Evaluator {
         };
 
         last_result = Self::evaluate(&flipped_node, env)?;
-        
+
         match last_result {
             RuntimeValue::ReturnValue(_) | RuntimeValue::Break | RuntimeValue::Continue => {
                 return Ok(last_result);
@@ -1182,17 +1182,17 @@ impl Evaluator {
     Ok(last_result)
 }
 
- 
+
 
     pub fn print_quantum_state(
-        state: &Rc<RefCell<HashMap<usize, (f64, f64)>>>, 
+        state: &Rc<RefCell<HashMap<usize, (f64, f64)>>>,
         size: usize,
         max_entries: usize
     ) {
         let num_qubits = size;
         let amplitudes_map = state.borrow();
         println!("--- Quantum State ({} qubits, {} non-zero amplitudes) ---", num_qubits, amplitudes_map.len());
-        
+
         let mut sorted_keys: Vec<usize> = amplitudes_map.keys().cloned().collect();
         sorted_keys.sort();
 
@@ -1213,7 +1213,7 @@ impl Evaluator {
         }
         match &args[0] {
             RuntimeValue::QuantumRegister { size, state } => {
-         
+
                 Self::print_quantum_state(state, *size, 10);
                 Ok(RuntimeValue::None)
             }
@@ -1234,7 +1234,7 @@ impl Evaluator {
             _ => return Err(format!("Runtime Error: 'measure' can only be used on a single Qubit, got {}.", target_val.type_name())),
         };
 
-     
+
         Self::perform_measurement(&state_rc, target_index, reg_size)
     }
 
@@ -1242,22 +1242,22 @@ impl Evaluator {
     if args.len() != 2 {
         return Err("Runtime Error: 'assert' expects 2 arguments (condition, message).".to_string());
     }
-    
+
     let condition = match &args[0] {
         RuntimeValue::Bool(b) => *b,
         _ => return Err(format!("Runtime Error: 'assert' argument 1 must be a Bool, got {}.", args[0].type_name())),
     };
-    
+
     let message = match &args[1] {
         RuntimeValue::String(s) => s.clone(),
         _ => return Err(format!("Runtime Error: 'assert' argument 2 must be a String, got {}.", args[1].type_name())),
     };
-    
+
     if condition {
-    
+
         Ok(RuntimeValue::None)
     } else {
-      
+
         Err(format!("Assertion Failed: {}", message))
     }
 }
@@ -1265,7 +1265,7 @@ impl Evaluator {
         let output: Vec<String> = args.into_iter()
             .map(|val| {
                 match val {
-                    RuntimeValue::String(s) => s,  
+                    RuntimeValue::String(s) => s,
                     RuntimeValue::Int(n) => n.to_string(),
                     RuntimeValue::Float(f) => f.to_string(),
                     RuntimeValue::Bool(b) => b.to_string(),
@@ -1347,8 +1347,8 @@ impl Evaluator {
             other_value => Ok(other_value),
         }
     }
-    
- 
+
+
     fn eval_let_declaration(name: &str, value_expr: &ASTNode, env: &Rc<RefCell<Environment>>) -> Result<RuntimeValue, String> {
         let value = Self::evaluate(value_expr, env)?;
         env.borrow_mut().set(name.to_string(), value);
@@ -1357,23 +1357,23 @@ impl Evaluator {
 
     fn eval_assignment(target: &ASTNode, value_expr: &ASTNode, env: &Rc<RefCell<Environment>>) -> Result<RuntimeValue, String> {
         let new_value = Self::evaluate(value_expr, env)?;
-        
+
         match target {
-      
+
             ASTNode::Identifier { name, .. } => {
                 if let Some(var_rc) = env.borrow().get(name) {
-                    *std::cell::RefCell::<_>::borrow_mut(&var_rc) = new_value; 
+                    *std::cell::RefCell::<_>::borrow_mut(&var_rc) = new_value;
                     Ok(RuntimeValue::None)
                 } else {
                     Err(format!("Runtime Error: Cannot assign to undefined variable '{}'.", name))
                 }
             }
-            
-          
+
+
             ASTNode::ArrayAccess { array, index, loc } => {
                 let collection_val = Self::evaluate(array, env)?;
                 let index_val = Self::evaluate(index, env)?;
-                
+
                 match collection_val {
                     RuntimeValue::Dict(mut map) => {
                         let key = Self::value_to_string_key(index_val)?;
@@ -1385,25 +1385,25 @@ impl Evaluator {
                             RuntimeValue::Int(i) => i as usize,
                             _ => return Err(format!("Runtime Error at {}: Array index must be an integer.", loc)),
                         };
-                        
+
                         if index >= elements.len() {
                             return Err(format!("Runtime Error at {}: Array index {} out of bounds for array of size {}.", loc, index, elements.len()));
                         }
-                        
+
                         *elements[index].borrow_mut() = new_value;
                         Ok(RuntimeValue::None)
                     }
                     _ => Err(format!("Runtime Error at {}: Cannot perform subscript assignment on type {:?}", loc, collection_val.type_name()))
                 }
             }
-            
+
             _ => Err("Runtime Error: Assignment target must be an identifier or subscript expression.".to_string())
         }
     }
 
     fn eval_identifier(name: &str, loc: &Loc, env: &Rc<RefCell<Environment>>) -> Result<RuntimeValue, String> {
         if let Some(val_rc) = env.borrow().get(name) {
-            Ok(val_rc.borrow().clone()) 
+            Ok(val_rc.borrow().clone())
         } else {
             Err(format!("Runtime Error at {}: Undefined variable '{}'", loc, name))
         }
@@ -1413,19 +1413,19 @@ impl Evaluator {
 
 
     fn eval_import_statement(
-        path: &ImportPath, 
-        alias: &str, 
+        path: &ImportPath,
+        alias: &str,
         env: &Rc<RefCell<Environment>>
     ) -> Result<RuntimeValue, String> {
-        
-   
+
+
         let file_path = match path {
             ImportPath::File(f) => {
                 if f.ends_with(".qc") || f.contains('/') || f.contains('\\') {
-            
+
                     f.clone()
                 } else {
-              
+
                     format!("q_packages/{}/init.qc", f)
                 }
             }
@@ -1433,28 +1433,28 @@ impl Evaluator {
                 m.join("/") + ".qc"
             }
         };
-       
 
-      
+
+
         let source = fs::read_to_string(&file_path)
             .map_err(|e| format!("Runtime Error: Failed to read module '{}': {}", file_path, e))?;
-        
+
         let mut lexer = Lexer::new(&source);
         let tokens = lexer.tokenize().map_err(|e| format!("Module Lexer Error: {}", e))?;
-        
+
         let mut parser = Parser::new(tokens);
         let ast = parser.parse().map_err(|e| format!("Module Parser Error: {}", e))?;
 
-      
+
         let module_env = Rc::new(RefCell::new(Environment::new()));
         Self::evaluate_program(&ast, &module_env)?;
-        
-     
+
+
         let module_val = RuntimeValue::Module(module_env);
-        
-      
+
+
         env.borrow_mut().set(alias.to_string(), module_val);
-        
+
         Ok(RuntimeValue::None)
     }
 
@@ -1492,7 +1492,7 @@ impl Evaluator {
     }
     Ok(last_result)
 }
-    
+
     fn eval_arguments(args: &[ASTNode], env: &Rc<RefCell<Environment>>) -> Result<Vec<RuntimeValue>, String> {
         let mut evaluated_args = Vec::new();
         for arg_expr in args {
@@ -1528,7 +1528,7 @@ impl Evaluator {
     }
     Ok(RuntimeValue::None)
 }
-    
+
     fn eval_binary_op(
         operator: &crate::parser::ast::BinaryOperator,
         left_expr: &Box<ASTNode>,
@@ -1580,35 +1580,35 @@ impl Evaluator {
         _env: &Rc<RefCell<Environment>>,
     ) -> Result<RuntimeValue, String> {
         use crate::parser::ast::BinaryOperator::*;
-        
-    
+
+
         if matches!(operator, TensorProduct) {
             match (left_val.clone(), right_val.clone()) {
                 (RuntimeValue::QuantumRegister { size: size_a, state: state_a_rc }, RuntimeValue::QuantumRegister { size: size_b, state: state_b_rc }) => {
                     let state_a = state_a_rc.borrow();
                     let state_b = state_b_rc.borrow();
                     let new_size = size_a + size_b;
-                    
+
                     let mut new_state = HashMap::new();
-                    
-             
+
+
                     for (&i, &amp_a) in state_a.iter() {
-                
+
                         for (&j, &amp_b) in state_b.iter() {
                             let new_index = (i << size_b) | j;
                             let new_amp_tuple = Self::complex_mul(amp_a, amp_b);
-                            
-                        
+
+
                             new_state.insert(new_index, new_amp_tuple);
                         }
                     }
-                    
+
                     return Ok(RuntimeValue::QuantumRegister { size: new_size, state: Rc::new(RefCell::new(new_state)) });
                 }
                 (l, r) => return Err(format!("Runtime Error at {}: Operator {:?} not defined for types {:?} and {:?}", loc, operator, l.type_name(), r.type_name())),
             }
         }
-      
+
 
         match operator {
             Equal => {
@@ -1666,7 +1666,7 @@ impl Evaluator {
                 }
             }
             _ => {
-            
+
                 let (op, l, r) = match (operator, left_val, right_val) {
                     (Div, RuntimeValue::Int(l), RuntimeValue::Int(r)) => (operator, RuntimeValue::Float(l as f64), RuntimeValue::Float(r as f64)),
                     (op, RuntimeValue::Int(l), RuntimeValue::Float(r)) if matches!(op, Add | Sub | Mul | Div | Less | Greater | LessEqual | GreaterEqual) => (op, RuntimeValue::Float(l as f64), RuntimeValue::Float(r)),
