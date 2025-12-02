@@ -1,7 +1,6 @@
 // tests/package_manager.qc
 print("--- Running Package Manager Test ---")
-
-// This uses the new "package" import logic
+// This uses the new package import logic
 import "test_pkg" as tp
 
 assert(tp.GREETING == "Hello from a 3rd party package!", "Package variable import")
