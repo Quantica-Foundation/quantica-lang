@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantica — Quantum Programming Language</title>
+    <meta name="description" content="A lightning-fast, Python-inspired quantum-classical hybrid language built in Rust with LLVM. 300+ examples, full gate support, Cirq & Qiskit simulators ready.">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background:#000;
+            color:#fff;
+            font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,sans-serif;
+            line-height:1.6;
+            overflow-x:hidden;
+        }
+        .gradient-bg {
+            position:fixed; inset:0; inset:0;
+            background:radial-gradient(circle at 50% 0%, rgba(0,255,0,0.1), transparent 50%),
+                       radial-gradient(circle at 0% 100%, rgba(0,255,0,0.05), transparent 50%);
+            pointer-events:none; z-index:0;
+        }
+        .container { position:relative; z-index:1; max-width:1200px; margin:0 auto; padding:20px; }
+        nav {
+            display:flex; justify-content:space-between; align-items:center;
+            padding:30px 0; border-bottom:1px solid rgba(255,255,255,0.1);
+        }
+        .logo {
+            font-size:28px; font-weight:800;
+            background:linear-gradient(135deg,#00ff00,#00cc00);
+            -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+            background-clip:text;
+        }
+        .nav-links { display:flex; gap:32px; list-style:none; }
+        .nav-links a { color:rgba(255,255,255,0.7); text-decoration:none; font-size:15px; transition:color .2s; }
+        .nav-links a:hover { color:#00ff00; }
+
+        .hero { text-align:center; padding:130px 20px 100px; }
+        .hero h1 {
+            font-size:76px; font-weight:800; line-height:1.1; margin-bottom:24px;
+            background:linear-gradient(135deg,#fff,#00ff00);
+            -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+            background-clip:text;
+        }
+        .hero p { font-size:21px; color:rgba(255,255,255,0.65); max-width:700px; margin:0 auto 40px; }
+        .cta-buttons { display:flex; gap:20px; justify-content:center; flex-wrap:wrap; }
+        .btn {
+            padding:16px 32px; border-radius:10px; font-weight:600; font-size:17px;
+            text-decoration:none; display:inline-block; transition:all .25s;
+        }
+        .btn-primary { background:#00ff00; color:#000; }
+        .btn-primary:hover { background:#00dd00; transform:translateY(-3px); box-shadow:0 10px 20px rgba(0,255,0,0.2); }
+        .btn-secondary { background:rgba(255,255,255,0.08); color:#fff; border:1px solid rgba(255,255,255,0.2); }
+        .btn-secondary:hover { background:rgba(255,255,255,0.15); border-color:#00ff00; }
+
+        .code-section { max-width:900px; margin:80px auto; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:14px; overflow:hidden; }
+        .code-header { padding:14px 24px; background:rgba(255,255,255,0.05); border-bottom:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; gap:12px; }
+        .dot { width:13px; height:13px; border-radius:50%; background:rgba(255,255,255,0.3); }
+        .code-content { padding:36px; font-family:'Monaco','Courier New',monospace; font-size:17px; line-height:1.9; }
+        .keyword { color:#00ff00; font-weight:bold; }
+        .comment { color:rgba(255,255,255,0.45); }
+        .string { color:#88ff88; }
+
+        .features { padding:100px 20px; }
+        .features h2 {
+            text-align:center; font-size:52px; margin-bottom:70px;
+            background:linear-gradient(135deg,#fff,#00ff00);
+            -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+            background-clip:text;
+        }
+        .features-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:32px; max-width:1100px; margin:0 auto; }
+        .feature-card {
+            padding:34px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1);
+            border-radius:14px; transition:all .3s;
+        }
+        .feature-card:hover { background:rgba(255,255,255,0.06); border-color:#00ff00; transform:translateY(-8px); }
+        .feature-card h3 { color:#00ff00; font-size:22px; margin:16px 0 12px; }
+        .feature-card p { color:rgba(255,255,255,0.65); font-size:15px; }
+
+        .stats { padding:90px 20px; text-align:center; }
+        .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:40px; max-width:900px; margin:0 auto; }
+        .stat-item h3 { font-size:52px; color:#00ff00; margin-bottom:8px; }
+        .stat-item p { color:rgba(255,255,255,0.6); font-size:15px; }
+
+        footer { padding:80px 20px 40px; border-top:1px solid rgba(255,255,255,255,0.1); text-align:center; }
+        .footer-links { display:flex; justify-content:center; gap:36px; margin-bottom:32px; flex-wrap:wrap; }
+        .footer-links a { color:rgba(255,255,255,0.65); text-decoration:none; font-size:15px; transition:.2s; }
+        .footer-links a:hover { color:#00ff00; }
+        .copyright { color:rgba(255,255,255,0.4); font-size:13px; }
+
+        @media (max-width:768px) {
+            .hero h1 { font-size:52px; }
+            .hero p { font-size:18px; }
+            .nav-links { display:none; }
+            .features h2 { font-size:40px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="gradient-bg"></div>
+
+    <div class="container">
+        <nav>
+            <div class="logo">Quantica</div>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="https://github.com/Quantica-Foundation/quantica-lang/blob/f69be6d190fbfa49384bc2fd51c7cf5a6b5051c3/Quantica-Docs-Exp300.pdf">Documentation</a></li>
+                <li><a href="https://github.com/Quantica-Foundation/quantica-lang">GitHub</a></li>
+            </ul>
+        </nav>
+
+        <section class="hero">
+            <h1>Quantum Computing<br>Made Simple</h1>
+            <p>A lightning-fast quantum-classical hybrid language built in pure Rust with LLVM. Built with Passion — now with Cirq & Qiskit simulators and 300+ working examples.</p>
+            <p style="font-size:18px;margin-top:12px;color:#0f0">The only quantum language that gives you full classical programming power alongside real quantum gates • Probabilistic programming out of the box</p>
+            <div class="cta-buttons">
+                <a href="https://github.com/Quantica-Foundation/quantica-lang/releases" class="btn btn-primary">Download v0.1 Alpha</a>
+                <a href="https://github.com/Quantica-Foundation/quantica-lang/blob/f69be6d190fbfa49384bc2fd51c7cf5a6b5051c3/Quantica-Docs-Exp300.pdf" class="btn btn-secondary">Read Full Docs (PDF)</a>
+            </div>
+        </section>
+
+        <section class="code-section">
+            <div class="code-header">
+                <div class="code-dots">
+                    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                </div>
+                <span style="margin-left:12px; color:rgba(255,255,255,0.5); font-family:monospace;">bell_test.qc</span>
+            </div>
+            <div class="code-content">
+                <div class="code-line"><span class="comment">// Create a perfect Bell state — runs on Cirq simulator today</span></div>
+                <div class="code-line"><span class="keyword">quantum</span> q[2]</div>
+                <div class="code-line"><span class="keyword">apply</span> Hadamard(q[0])</div>
+                <div class="code-line"><span class="keyword">apply</span> CNOT(q[0], q[1])</div>
+                <div class="code-line"><span class="keyword">let</span> m0 = measure(q[0])</div>
+                <div class="code-line"><span class="keyword">let</span> m1 = measure(q[1])</div>
+                <div class="code-line"><span class="keyword">print</span>(<span class="string">"Entangled! |ψ⟩ = (|00⟩ + |11⟩)/√2"</span>)</div>
+            </div>
+        </section>
+
+        <section class="features" id="features">
+            <h2>Why Quantica?</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div style="font-size:38px;margin-bottom:16px;">Full Classical Power</div>
+                    <h3>Classical Workflow</h3>
+                    <p>Variables (let/mut), loops, if/else, functions, recursion, arrays, tuples — everything you expect from a real language.</p>
+                </div>
+                <div class="feature-card">
+                    <div style="font-size:38px;margin-bottom:16px;">Lightning Fast</div>
+                    <h3>LLVM-Powered</h3>
+                    <p>Native machine code via LLVM — interpreter, experimental JIT, and upcoming AOT compilation.</p>
+                </div>
+                <div class="feature-card">
+                    <div style="font-size:38px;margin-bottom:16px;">Type Safe</div>
+                    <h3>Static Type Checking</h3>
+                    <p>Quantum registers are first-class types. Errors caught at compile-time.</p>
+                </div>
+                <div class="feature-card">
+                    <div style="font-size:38px;margin-bottom:16px;">Native Quantum</div>
+                    <h3>Real Quantum Primitives</h3>
+                    <p>X, Y, Z, H, S, T, RX, RY, RZ, CNOT, CZ, Toffoli, controlled(), dagger(), U-gate — all built-in.</p>
+                </div>
+                <div class="feature-card">
+                    <div style="font-size:38px;margin-bottom:16px;">Simulator Ready</div>
+                    <h3>Cirq & Qiskit Backends</h3>
+                    <p>Run circuits instantly on Google Cirq and IBM Qiskit Aer simulators. Real hardware support coming via free tiers.</p>
+                </div>
+                <div class="feature-card">
+                    <div style="font-size:38px;margin-bottom:16px;">Advanced Quantum Features</div>
+                    <h3>Research-ready</h3>
+                    <p>Gate composition, inverse operations, multi-qubit controlled gates, state initialization & debug_state() visualization.</p>
+                </div>
+                <div class="feature-card">
+                    <div style="font-size:38px;margin-bottom:16px;">Elegant Syntax</div>
+                    <h3>Python-Inspired</h3>
+                    <p>Clean, readable code that feels natural for both classical and quantum logic.</p>
+                </div>
+                <div class="feature-card">
+                    <div style="font-size:38px;margin-bottom:16px;">300 Examples</div>
+                    <h3>Learn by Doing</h3>
+                    <p>Full 98-page documentation + 300+ tested example programs included.</p>
+                </div>
+                <div class="feature-card">
+                    <div style="font-size:38px;margin-bottom:16px;">Built For the Future</div>
+                    <h3>Execution Modes</h3>
+                    <p>Interpreter (default), experimental JIT and AOT • Platform : Windows • MIT licensed.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="stats">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <h3>v0.1</h3>
+                    <p>Alpha Release — Nov 2025</p>
+                </div>
+                <div class="stat-item">
+                    <h3>100%</h3>
+                    <p>Written in Rust + LLVM</p>
+                </div>
+                <div class="stat-item">
+                    <h3>MIT</h3>
+                    <p>Forever Open Source</p>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            <div class="footer-links">
+                <a href="https://github.com/Quantica-Foundation/quantica-lang">GitHub</a>
+                <a href="https://github.com/Quantica-Foundation/quantica-lang/releases">Download</a>
+                <a href="https://github.com/Quantica-Foundation/quantica-lang/blob/f69be6d190fbfa49384bc2fd51c7cf5a6b5051c3/Quantica-Docs-Exp300.pdf">Full Documentation (PDF)</a>
+                <a href="https://github.com/Quantica-Foundation/quantica-lang/issues">Issues & Feedback</a>
+            </div>
+            <p class="copyright">2025 Quantica Foundation • MIT License • Built with passion</p>
+        </footer>
+    </div>
+</body>
+</html>
