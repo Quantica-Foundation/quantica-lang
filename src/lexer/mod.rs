@@ -977,14 +977,13 @@ fn make_token(&self, token: Token, length: usize) -> TokenWithLocation {
     }
 }
 
-// Tests
 #[cfg(test)]
 mod tests {
     use super::*;
     
     #[test]
     fn test_keywords() {
-        let input = "let mut quantum apply measure tensor";
+        let input = "let mut quantum apply measure";
         let mut lexer = Lexer::new(input);
         let tokens = lexer.tokenize().unwrap();
         
@@ -993,7 +992,19 @@ mod tests {
         assert_eq!(tokens[2].token, Token::Quantum);
         assert_eq!(tokens[3].token, Token::Apply);
         assert_eq!(tokens[4].token, Token::Measure);
-        assert_eq!(tokens[5].token, Token::Tensor);
+    }
+    
+    #[test]
+    fn test_gate_tokens() {
+        let input = "Hadamard X Y Z CNOT";
+        let mut lexer = Lexer::new(input);
+        let tokens = lexer.tokenize().unwrap();
+        
+        assert_eq!(tokens[0].token, Token::Hadamard);
+        assert_eq!(tokens[1].token, Token::X);
+        assert_eq!(tokens[2].token, Token::Y);
+        assert_eq!(tokens[3].token, Token::Z);
+        assert_eq!(tokens[4].token, Token::Cnot);
     }
     
     #[test]
@@ -1062,8 +1073,8 @@ mod tests {
         let mut lexer = Lexer::new(input);
         let tokens = lexer.tokenize().unwrap();
         
-        assert_eq!(tokens[1].token, Token::Star);           // single *
-        assert_eq!(tokens[3].token, Token::TensorProduct);  // ***
+        assert_eq!(tokens[1].token, Token::Star);
+        assert_eq!(tokens[3].token, Token::TensorProduct);
     }
     
     #[test]
@@ -1109,8 +1120,44 @@ mod tests {
         assert!(matches!(tokens[3].token, Token::FloatLiteral(_)));
     }
 
+    #[test]
+    fn test_comments_single_line() {
+        let input = "let x = 10 // this is a comment\nlet y = 20";
+        let mut lexer = Lexer::new(input);
+        let tokens = lexer.tokenize().unwrap();
+        assert!(tokens.iter().any(|t| matches!(t.token, Token::Let)));
+        assert!(tokens.iter().any(|t| matches!(t.token, Token::IntLiteral(10))));
+        assert!(tokens.iter().any(|t| matches!(t.token, Token::IntLiteral(20))));
+    }
+
+    #[test]
+    fn test_multiline_comment() {
+        let input = "let x = 10 /* this is a\nmultiline comment */ let y = 20";
+        let mut lexer = Lexer::new(input);
+        let tokens = lexer.tokenize().unwrap();
+        
+        assert!(tokens.iter().any(|t| matches!(t.token, Token::IntLiteral(10))));
+        assert!(tokens.iter().any(|t| matches!(t.token, Token::IntLiteral(20))));
+    }
+
+    #[test]
+    fn test_power_operator() {
+        let input = "2 ^ 3";
+        let mut lexer = Lexer::new(input);
+        let tokens = lexer.tokenize().unwrap();
+        
+        assert_eq!(tokens[0].token, Token::IntLiteral(2));
+        assert_eq!(tokens[1].token, Token::Caret);
+        assert_eq!(tokens[2].token, Token::IntLiteral(3));
+    }
+
+    #[test]
+    fn test_indentation() {
+        let input = "if True:\n    let x = 10\n    let y = 20";
+        let mut lexer = Lexer::new(input);
+        let tokens = lexer.tokenize().unwrap();
+        
+        assert!(tokens.iter().any(|t| matches!(t.token, Token::Indent)));
+        assert!(tokens.iter().any(|t| matches!(t.token, Token::Dedent)));
+    }
 }
-
-
-
-

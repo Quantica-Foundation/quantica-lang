@@ -1445,119 +1445,261 @@ impl Parser {
     fn skip_newlines(&mut self) {
         while self.match_token(&Token::Newline) {}
     }
-
-
-    // Tests
+}
+// Tests
 
 }
 #[cfg(test)]
 mod tests {
-use super::*;
-use crate::lexer::Lexer;
-        
-        fn parse_source(source: &str) -> Result<ASTNode, String> {
-            let mut lexer = Lexer::new(source);
-            let tokens = lexer.tokenize()?;
-            let mut parser = Parser::new(tokens);
-            parser.parse()
-        }
-        
-        
-        #[test]
-        fn test_let_declaration() {
-            let source = "let x = 42";
-            let ast = parse_source(source).unwrap();
-            
-            if let ASTNode::Program(statements) = ast {
-                assert_eq!(statements.len(), 1);
-                if let ASTNode::LetDeclaration { name, value, is_mutable, .. } = &statements[0] {
-                    assert_eq!(name, "x");
-                    assert_eq!(*is_mutable, false);
-                    assert!(matches!(**value, ASTNode::IntLiteral(42)));
-                } else {
-                    panic!("Expected LetDeclaration, found {:?}", statements[0]);
-                }
-            }
-        }
-        
-        #[test]
-        fn test_quantum_declaration() {
-            let source = "quantum q = |0}";
-            let ast = parse_source(source).unwrap();
-            
-            if let ASTNode::Program(statements) = ast {
-                assert_eq!(statements.len(), 1);
-                if let ASTNode::QuantumDeclaration { name, initial_state, .. } = &statements[0] {
-                    assert_eq!(name, "q");
-                    assert!(initial_state.is_some());
-                    if let Some(state) = initial_state {
-                         assert!(matches!(**state, ASTNode::QuantumKet(ref s) if s == "0"));
-                    }
-                } else {
-                    panic!("Expected QuantumDeclaration");
-                }
-            }
-        }
-        
-        
-        #[test]
-        fn test_tensor_product() {
-            let source = "let result = q1 *** q2";
-            let ast = parse_source(source).unwrap();
-            
-            if let ASTNode::Program(statements) = ast {
-                if let ASTNode::LetDeclaration { value, .. } = &statements[0] {
-                    if let ASTNode::Binary { operator, left, right, .. } = &**value {
-                        assert_eq!(*operator, BinaryOperator::TensorProduct);
-                        assert!(matches!(**left, ASTNode::Identifier{ref name, .. } if name == "q1"));
-                        assert!(matches!(**right, ASTNode::Identifier{ref name, .. } if name == "q2"));
-                    } else {
-                         panic!("Expected Binary TensorProduct");
-                    }
-                }
-            }
-        }
-
-        #[test]
-        fn test_lexer_comments_and_indentation() {
-            let code = "let x = 10;\n  // comment line\n  let y = 20;";
-            let mut lexer = Lexer::new(code);
-            let tokens = lexer.tokenize().unwrap();
-            assert!(tokens.iter().any(|t| t.token == Token::Let));
-            assert!(tokens.iter().any(|t| t.token == Token::IntLiteral(10)));
-            assert!(tokens.iter().any(|t| t.token == Token::IntLiteral(20)));
+    use super::*;
+    use crate::lexer::Lexer;
+    
+    fn parse_source(source: &str) -> Result<ASTNode, String> {
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.tokenize()?;
+        let mut parser = Parser::new(tokens);
+        parser.parse()
     }
-
+    
+    #[test]
+    fn test_let_declaration() {
+        let source = "let x = 42";
+        let ast = parse_source(source).unwrap();
         
-        #[test]
-        fn test_parser_if_else() {
-            let code = "if true\n  print(\"yes\")\nelse\n  print(\"no\")";
-            let tokens = Lexer::new(code).tokenize().unwrap();
-            let mut parser = Parser::new(tokens);
-            let ast = parser.parse().unwrap();
-            match ast {
-                ASTNode::Program(statements) => {
-                    assert!(matches!(statements[0], ASTNode::If { .. }));
-                }
-                _ => panic!("Expected Program node"),
+        if let ASTNode::Program(statements) = ast {
+            assert_eq!(statements.len(), 1);
+            if let ASTNode::LetDeclaration { name, value, is_mutable, .. } = &statements[0] {
+                assert_eq!(name, "x");
+                assert_eq!(*is_mutable, false);
+                assert!(matches!(**value, ASTNode::IntLiteral(42)));
+            } else {
+                panic!("Expected LetDeclaration");
             }
         }
+    }
+    
+    #[test]
+    fn test_quantum_declaration() {
+        let source = "quantum q = |0}";
+        let ast = parse_source(source).unwrap();
         
-        #[test]
-        fn test_dict_literal() {
-            let source = "let d = { 1: \"a\", \"b\": 2 }";
-            let ast = parse_source(source).unwrap();
-            if let ASTNode::Program(statements) = ast {
-                if let ASTNode::LetDeclaration { value, .. } = &statements[0] {
-                    if let ASTNode::DictLiteral(pairs) = &**value {
-                        assert_eq!(pairs.len(), 2);
-                        assert!(matches!(pairs[0].0, ASTNode::IntLiteral(1)));
-                        assert!(matches!(&pairs[1].0, ASTNode::StringLiteral(ref s) if s == "b"));
-                    } else {
-                         panic!("Expected DictLiteral");
-                    }
+        if let ASTNode::Program(statements) = ast {
+            assert_eq!(statements.len(), 1);
+            if let ASTNode::QuantumDeclaration { name, initial_state, .. } = &statements[0] {
+                assert_eq!(name, "q");
+                assert!(initial_state.is_some());
+                if let Some(state) = initial_state {
+                    assert!(matches!(**state, ASTNode::QuantumKet(ref s) if s == "0"));
+                }
+            } else {
+                panic!("Expected QuantumDeclaration");
+            }
+        }
+    }
+    
+    #[test]
+    fn test_tensor_product() {
+        let source = "let result = q1 *** q2";
+        let ast = parse_source(source).unwrap();
         
+        if let ASTNode::Program(statements) = ast {
+            if let ASTNode::LetDeclaration { value, .. } = &statements[0] {
+                if let ASTNode::Binary { operator, left, right, .. } = &**value {
+                    assert_eq!(*operator, BinaryOperator::TensorProduct);
+                    assert!(matches!(**left, ASTNode::Identifier{ref name, .. } if name == "q1"));
+                    assert!(matches!(**right, ASTNode::Identifier{ref name, .. } if name == "q2"));
+                } else {
+                    panic!("Expected Binary TensorProduct");
                 }
             }
         }
     }
+
+    #[test]
+    fn test_function_declaration() {
+        let source = "func add(x: Int, y: Int) -> Int:\n    return x + y";
+        let ast = parse_source(source).unwrap();
+        
+        if let ASTNode::Program(statements) = ast {
+            assert_eq!(statements.len(), 1);
+            if let ASTNode::FunctionDeclaration { name, parameters, return_type, .. } = &statements[0] {
+                assert_eq!(name, "add");
+                assert_eq!(parameters.len(), 2);
+                assert!(matches!(return_type, Some(Type::Int)));
+            } else {
+                panic!("Expected FunctionDeclaration");
+            }
+        }
+    }
+
+    #[test]
+    fn test_if_statement() {
+        let source = "if x > 5:\n    print(\"yes\")";
+        let ast = parse_source(source).unwrap();
+        
+        if let ASTNode::Program(statements) = ast {
+            assert!(matches!(statements[0], ASTNode::If { .. }));
+        } else {
+            panic!("Expected Program node");
+        }
+    }
+
+    #[test]
+    fn test_if_elif_else() {
+        let source = "if x > 5:\n    print(\"big\")\nelif x > 0:\n    print(\"small\")\nelse:\n    print(\"zero or negative\")";
+        let ast = parse_source(source).unwrap();
+        
+        if let ASTNode::Program(statements) = ast {
+            if let ASTNode::If { elif_blocks, else_block, .. } = &statements[0] {
+                assert_eq!(elif_blocks.len(), 1);
+                assert!(else_block.is_some());
+            } else {
+                panic!("Expected If statement");
+            }
+        }
+    }
+    
+    #[test]
+    fn test_dict_literal() {
+        let source = "let d = { 1: \"a\", \"b\": 2 }";
+        let ast = parse_source(source).unwrap();
+        
+        if let ASTNode::Program(statements) = ast {
+            if let ASTNode::LetDeclaration { value, .. } = &statements[0] {
+                if let ASTNode::DictLiteral(pairs) = &**value {
+                    assert_eq!(pairs.len(), 2);
+                    assert!(matches!(pairs[0].0, ASTNode::IntLiteral(1)));
+                    assert!(matches!(&pairs[1].0, ASTNode::StringLiteral(ref s) if s == "b"));
+                } else {
+                    panic!("Expected DictLiteral");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_apply_statement() {
+        let source = "apply Hadamard(q[0])";
+        let ast = parse_source(source).unwrap();
+        
+        if let ASTNode::Program(statements) = ast {
+            assert!(matches!(statements[0], ASTNode::Apply { .. }));
+        }
+    }
+
+    #[test]
+    fn test_controlled_gate() {
+        let source = "apply controlled(X)(q[0], q[1])";
+        let ast = parse_source(source).unwrap();
+        
+        if let ASTNode::Program(statements) = ast {
+            if let ASTNode::Apply { gate_expr, .. } = &statements[0] {
+                assert!(matches!(**gate_expr, ASTNode::Controlled { .. }));
+            } else {
+                panic!("Expected Apply with Controlled gate");
+            }
+        }
+    }
+
+    #[test]
+    fn test_dagger_gate() {
+        let source = "apply dagger(S)(q[0])";
+        let ast = parse_source(source).unwrap();
+        
+        if let ASTNode::Program(statements) = ast {
+            if let ASTNode::Apply { gate_expr, .. } = &statements[0] {
+                assert!(matches!(**gate_expr, ASTNode::Dagger { .. }));
+            } else {
+                panic!("Expected Apply with Dagger gate");
+            }
+        }
+    }
+
+    #[test]
+    fn test_parameterized_gate() {
+        let source = "apply RX(3.14)(q[0])";
+        let ast = parse_source(source).unwrap();
+        
+        if let ASTNode::Program(statements) = ast {
+            if let ASTNode::Apply { gate_expr, .. } = &statements[0] {
+                assert!(matches!(**gate_expr, ASTNode::ParameterizedGate { .. }));
+            } else {
+                panic!("Expected Apply with ParameterizedGate");
+            }
+        }
+    }
+
+    #[test]
+    fn test_power_operator() {
+        let source = "let result = 2 ^ 3";
+        let ast = parse_source(source).unwrap();
+        
+        if let ASTNode::Program(statements) = ast {
+            if let ASTNode::LetDeclaration { value, .. } = &statements[0] {
+                if let ASTNode::Binary { operator, .. } = &**value {
+                    assert_eq!(*operator, BinaryOperator::Power);
+                } else {
+                    panic!("Expected Binary Power operation");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_import_statement() {
+        let source = "import \"math.qc\" as math";
+        let ast = parse_source(source).unwrap();
+        
+        if let ASTNode::Program(statements) = ast {
+            assert!(matches!(statements[0], ASTNode::Import { .. }));
+        }
+    }
+
+    #[test]
+    fn test_from_import() {
+        let source = "from \"math.qc\" import PI, sin";
+        let ast = parse_source(source).unwrap();
+        
+        if let ASTNode::Program(statements) = ast {
+            assert!(matches!(statements[0], ASTNode::FromImport { .. }));
+        }
+    }
+
+    #[test]
+    fn test_try_catch() {
+        let source = "Try:\n    let x = 10\nCatch err:\n    print(err)";
+        let ast = parse_source(source).unwrap();
+        
+        if let ASTNode::Program(statements) = ast {
+            assert!(matches!(statements[0], ASTNode::TryCatch { .. }));
+        }
+    }
+
+    #[test]
+    fn test_array_literal() {
+        let source = "let arr = [1, 2, 3]";
+        let ast = parse_source(source).unwrap();
+        
+        if let ASTNode::Program(statements) = ast {
+            if let ASTNode::LetDeclaration { value, .. } = &statements[0] {
+                if let ASTNode::ArrayLiteral(elements) = &**value {
+                    assert_eq!(elements.len(), 3);
+                } else {
+                    panic!("Expected ArrayLiteral");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_range_expression() {
+        let source = "let r = 0..10";
+        let ast = parse_source(source).unwrap();
+        
+        if let ASTNode::Program(statements) = ast {
+            if let ASTNode::LetDeclaration { value, .. } = &statements[0] {
+                assert!(matches!(**value, ASTNode::Range { .. }));
+            }
+        }
+    }
+}
