@@ -876,7 +876,7 @@ impl Lexer {
         Ok(self.make_token(Token::IntLiteral(ch as i64), length))
     }
     
-    // Helper methods
+
     fn current_char(&self) -> Result<char, String> {
         if self.is_at_end() {
             Err("Unexpected end of input".to_string())
@@ -902,12 +902,12 @@ impl Lexer {
     }
 
     fn skip_single_line_comment(&mut self) {
-        self.advance(); // Consume the second '/'
+        self.advance();
         
-        // Loop while 'current_char()' is Ok and not a newline
+
         while let Ok(ch) = self.current_char() {
             if ch == '\n' {
-                break; // Stop at the newline (don't consume it)
+                break;
             }
             self.advance();
         }
@@ -1109,6 +1109,7 @@ mod tests {
     }
     
     #[test]
+    #[allow(clippy::approx_constant)]
     fn test_numbers() {
         let input = "42 3.14 2.5e10 1.0e-5";
         let mut lexer = Lexer::new(input);
@@ -1161,3 +1162,4 @@ mod tests {
         assert!(tokens.iter().any(|t| matches!(t.token, Token::Dedent)));
     }
 }
+

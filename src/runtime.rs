@@ -84,7 +84,7 @@ pub extern "C" fn quantica_rt_device_alloc(size_bytes: usize) -> *mut c_void {
 }
 
 #[no_mangle]
-pub extern "C" fn quantica_rt_device_free(device_ptr: *mut c_void) {
+pub unsafe extern "C" fn quantica_rt_device_free(device_ptr: *mut c_void) {
     if device_ptr.is_null() {
         return;
     }
@@ -95,7 +95,7 @@ pub extern "C" fn quantica_rt_device_free(device_ptr: *mut c_void) {
 }
 
 #[no_mangle]
-pub extern "C" fn quantica_rt_htod_transfer(
+pub unsafe extern "C" fn quantica_rt_htod_transfer(
     host_ptr: *const c_void, 
     device_ptr: *mut c_void, 
     size_bytes: usize
@@ -109,7 +109,7 @@ pub extern "C" fn quantica_rt_htod_transfer(
 }
 
 #[no_mangle]
-pub extern "C" fn quantica_rt_dtoh_transfer(
+pub unsafe extern "C" fn quantica_rt_dtoh_transfer(
     host_ptr: *mut c_void, 
     device_ptr: *const c_void, 
     size_bytes: usize
@@ -158,7 +158,7 @@ pub extern "C" fn quantica_rt_debug_state(state_ptr: StatePtr) {
     }
 }
 #[no_mangle]
-pub extern "C" fn quantica_rt_apply_gate(
+pub unsafe extern "C" fn quantica_rt_apply_gate(
     state_ptr: StatePtr,
     gate_name_ptr: *const c_char,
     is_dagger_int: c_int,
@@ -254,7 +254,7 @@ pub extern "C" fn quantica_rt_print_int(n: i64) {
 }
 
 #[no_mangle]
-pub extern "C" fn quantica_rt_print_string(s: *const c_char) {
+pub unsafe extern "C" fn quantica_rt_print_string(s: *const c_char) {
     if s.is_null() { 
         println!("(null)");
     } else {
@@ -267,3 +267,4 @@ pub extern "C" fn quantica_rt_print_string(s: *const c_char) {
     }
     let _ = std::io::stdout().flush();
 }
+
