@@ -5,6 +5,7 @@
 [![Rust](https://img.shields.io/badge/written%20in-Rust-orange)](https://www.rust-lang.org/)
 [![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)]()
 [![Website](https://img.shields.io/badge/website-live-00cc66)](https://quantica-foundation.github.io/quantica-lang/)
+[![Quantica Projects](https://img.shields.io/badge/Quantica_Projects-Live-blue)](https://github.com/Quantica-Foundation/quantica-projects.git)
 
 
 **Quantica** is a high-performance, compiled programming language designed for the next generation of computing: **Quantum-Classical Hybrid** workflows. Written in Rust and powered by LLVM, it features native quantum primitives, sparse state simulation, and a syntax built for scientists and engineers.
