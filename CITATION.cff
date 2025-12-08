@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+title: "Quantica: A Hybrid Classical–Quantum Programming Language with a Unified Execution Model"
+authors:
+  - family-names: M
+    given-names: Gurukasi
+    orcid: https://orcid.org/0009-0003-3707-4994
+version: "1.0"
+date-released: 2025-12-08
+doi: 10.5281/zenodo.17852707
+url: https://zenodo.org/records/17852707
+repository-code: https://github.com/Quantica-Foundation/quantica-lang
+abstract: |
+  Quantica is an experimental hybrid classical–quantum programming language
+  providing a unified execution model for classical control and quantum
+  computation.
