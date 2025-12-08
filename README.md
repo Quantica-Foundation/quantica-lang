@@ -52,4 +52,14 @@ Add this folder to your PATH or copy the binary to /usr/local/bin
 - Try/finally not implemented (try/catch works)
 - JIT mode experimental (use interpreter or AOT)
 
-⭐ If you like this project, consider giving it a star!
+## Research Paper
+
+The design and execution model of Quantica are described in the following paper:
+
+**Gurukasi M.**  
+*Quantica: A Hybrid Classical–Quantum Programming Language with a Unified Execution Model*  
+Zenodo (2025).  
+DOI: https://doi.org/10.5281/zenodo.17852707
+
+
+## ⭐ If you like this project, consider giving it a star!
