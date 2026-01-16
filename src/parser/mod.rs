@@ -1552,6 +1552,7 @@ impl Parser {
                 })
             }
 
+
             Token::Identifier(name) => {
                 self.advance();
 
@@ -1560,6 +1561,7 @@ impl Parser {
                     loc,
                 })
             }
+            Token::New => self.parse_new_instance(),
 
             Token::Dagger => {
                 self.advance();

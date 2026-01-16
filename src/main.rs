@@ -55,7 +55,7 @@ enum CompilationTarget {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("=== Quantica Compiler v0.2.0 ===\n");
+    println!("=== Quantica Compiler v0.2.1 ===\n");
 
     let args: Vec<String> = env::args().collect();
 
@@ -720,6 +720,9 @@ fn run_jit_file(
     println!();
 
     use std::io::Write;
+    let _ = std::io::stdout().flush();
+
+    println!("[DEBUG] About to execute JIT code...");
     let _ = std::io::stdout().flush();
 
     let start_time = Instant::now();
@@ -1511,3 +1514,4 @@ fn count_total_qubits(node: &ASTNode) -> usize {
         _ => 0,
     }
 }
+
