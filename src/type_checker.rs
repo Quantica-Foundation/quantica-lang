@@ -340,24 +340,24 @@ impl TypeChecker {
         env_mut.set(
             "file_write".to_string(),
             immut(Type::Function(
-                vec![Type::String, Type::String], // Arguments: (path, content)
-                Box::new(Type::None),             // Returns: None
+                vec![Type::String, Type::String],
+                Box::new(Type::None),
             )),
         );
 
         env_mut.set(
             "file_read".to_string(),
             immut(Type::Function(
-                vec![Type::String],     // Argument: (path)
-                Box::new(Type::String), // Returns: String (content)
+                vec![Type::String],
+                Box::new(Type::String),
             )),
         );
 
         env_mut.set(
             "time".to_string(),
             immut(Type::Function(
-                vec![],                 // No arguments
-                Box::new(Type::Float),  // Returns Float
+                vec![],
+                Box::new(Type::Float),
             )),
         );
 
@@ -365,10 +365,12 @@ impl TypeChecker {
             "matrix_update".to_string(),
             immut(Type::Function(
                 vec![
-                    Type::Array(Box::new(Type::Array(Box::new(Type::Float)))), // weights
-                    Type::Array(Box::new(Type::Float)), // delta
-                    Type::Array(Box::new(Type::Float)), // input
-                    Type::Float                         // lr
+                    Type::Array(Box::new(Type::Array(Box::new(Type::Float)))),
+                    Type::Array(Box::new(Type::Float)),
+                    Type::Array(Box::new(Type::Float)),
+                    Type::Float,
+                    Type::Int,
+                    Type::Int
                 ],
                 Box::new(Type::None),
             )),
@@ -378,10 +380,20 @@ impl TypeChecker {
             "compute_input_gradient".to_string(),
             immut(Type::Function(
                 vec![
-                    Type::Array(Box::new(Type::Array(Box::new(Type::Float)))), // weights
-                    Type::Array(Box::new(Type::Float))  // delta
+                    Type::Array(Box::new(Type::Array(Box::new(Type::Float)))),
+                    Type::Array(Box::new(Type::Float)),
+                    Type::Int,
+                    Type::Int
                 ],
-                Box::new(Type::Array(Box::new(Type::Float))), // returns input_gradient
+                Box::new(Type::Array(Box::new(Type::Float))),
+            )),
+        );
+
+        env_mut.set(
+            "file_append".to_string(),
+            immut(Type::Function(
+                vec![Type::String, Type::String],
+                Box::new(Type::None),
             )),
         );
 
@@ -389,35 +401,45 @@ impl TypeChecker {
 
     pub fn check_program(node: &ASTNode) -> Result<(), String> {
         if let ASTNode::Program(statements) = node {
-            // 1. Create the Environment
+
             let env = Rc::new(RefCell::new(TypeEnvironment::new()));
             let mut lifecycle = QubitLifecycleManager::new(true);
 
-            // 2. Prefill Standard Built-ins (print, etc.)
+
             Self::prefill_environment(&env);
 
-            // 3. FORCE Register file I/O (Fixes the 'Undefined variable' error)
+
             {
                 let mut env_mut = env.borrow_mut();
 
-                // Manually add file_read
+
                 env_mut.set(
                     "file_read".to_string(),
                     TypeInfo {
                         var_type: Type::Function(
-                            vec![Type::String],      // Arg: path
-                            Box::new(Type::String)   // Ret: content
+                            vec![Type::String],
+                            Box::new(Type::String)
+                        ),
+                        is_mutable: false
+                    }
+                );
+                env_mut.set(
+                    "file_append".to_string(),
+                    TypeInfo {
+                        var_type: Type::Function(
+                            vec![Type::String, Type::String],
+                            Box::new(Type::None)
                         ),
                         is_mutable: false
                     }
                 );
 
-                // Manually add file_write
+
                 env_mut.set(
                     "file_write".to_string(),
                     TypeInfo {
                         var_type: Type::Function(
-                            vec![Type::String, Type::String], // Args: path, content
+                            vec![Type::String, Type::String],
                             Box::new(Type::None)
                         ),
                         is_mutable: false
@@ -425,7 +447,7 @@ impl TypeChecker {
                 );
             }
 
-            // 4. Pass 1: Register Global Functions & Classes
+
             for stmt in statements {
                 match stmt {
                     ASTNode::FunctionDeclaration { name, parameters, return_type, .. } => {
@@ -459,7 +481,7 @@ impl TypeChecker {
                 }
             }
 
-            // 5. Pass 2: Check Statements (Bodies)
+
             for stmt in statements {
                 Self::check_with_lifecycle(stmt, &env, None, &mut lifecycle)?;
             }
@@ -1156,7 +1178,7 @@ impl TypeChecker {
                         };
 
                         if let Some(mut class_name) = class_name_opt {
-                            // Handle aliased class names (e.g. ai.Dataset -> Dataset)
+
                             if class_name.contains('.') {
                                 if let Some(real_name) = class_name.split('.').last() {
                                     class_name = real_name.to_string();
@@ -1165,13 +1187,13 @@ impl TypeChecker {
 
                             let field_key = format!("{}::{}", class_name, member);
 
-                            // Check current environment first
+
                             if let Some(field_info) = env.borrow().get(&field_key) {
                                 return Ok(field_info.var_type.clone());
                             }
 
-                            // CRITICAL FIX: Check inside imported modules
-                            // The field definition might be inside a module's type map
+
+
                             let mut found_type = None;
                             let mut current_env = Some(env.clone());
 
@@ -2110,7 +2132,7 @@ impl TypeChecker {
                     ));
                 }
 
-                // Handle Module Access
+
                 if let Type::Module(module_types) = object_type {
                     match module_types.get(member) {
                         Some(t) => Ok(t.clone()),
@@ -2119,7 +2141,7 @@ impl TypeChecker {
                             member
                         )),
                     }
-                // Handle .length property
+
                 } else if member == "length" {
                     match object_type {
                         Type::Array(_) | Type::String | Type::Dict => Ok(Type::Int),

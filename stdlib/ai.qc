@@ -172,7 +172,7 @@ Class Layer:
         last_z = []
 
     func forward(input: Float[]) -> Float[]:
-        last_input = input
+        self.last_input = input
         mut z = []
 
         mut i = 0
@@ -182,7 +182,7 @@ Class Layer:
             i = i + 1
         // ---------------------------
 
-        last_z = z
+        self.last_z = z
 
         mut output = []
         i = 0
@@ -191,7 +191,7 @@ Class Layer:
             output = output + [activated]
             i = i + 1
 
-        last_output = output
+        self.last_output = output
         return output
 
     func apply_activation(x: Float) -> Float:
@@ -239,14 +239,14 @@ Class Layer:
             i = i + 1
         */
 
-        matrix_update(weights, delta, last_input, learning_rate)
+        matrix_update(weights, delta, last_input, learning_rate, output_size, input_size)
 
         i = 0
         while i < output_size:
             biases[i] = biases[i] - learning_rate * delta[i]
             i = i + 1
 
-        let input_gradient = compute_input_gradient(weights, delta)
+        let input_gradient = compute_input_gradient(weights, delta, output_size, input_size)
 
         return input_gradient
 
@@ -304,51 +304,66 @@ Class NeuralNetwork:
 
     func save(filename: String):
         print("Saving model to " + filename + "...")
-        mut data = ""
 
-        data = data + "lr:" + to_string(learning_rate) + "\n"
-        data = data + "layers:" + to_string(num_layers) + "\n"
+        // Clear file
+        file_write(filename, "")
+
+        // Write Header
+        file_append(filename, "lr:" + to_string(learning_rate) + "\n")
+        file_append(filename, "layers:" + to_string(num_layers) + "\n")
 
         mut i = 0
         while i < self.num_layers:
             let layer = self.layers[i]
 
-            data = data + "L" + to_string(i) + ":"
-            data = data + to_string(layer.input_size) + ","
-            data = data + to_string(layer.output_size) + ","
-            data = data + layer.activation + "\n"
+            // Write Layer Info
+            mut header = "L" + to_string(i) + ":"
+            header = header + to_string(layer.input_size) + ","
+            header = header + to_string(layer.output_size) + ","
+            header = header + layer.activation + "\n"
+            file_append(filename, header)
 
-            mut w_str = ""
+            // Write Weights (Value by Value to prevent memory leak)
             mut r = 0
-            mut total_weights = layer.output_size * layer.input_size
-            mut weight_count = 0
             while r < layer.output_size:
                 mut c = 0
                 while c < layer.input_size:
-                    w_str = w_str + to_string(layer.weights[r][c])
-                    weight_count = weight_count + 1
-                    if weight_count < total_weights:
-                        w_str = w_str + ","
-                    c = c + 1
-                r = r + 1
-            data = data + w_str + "\n"
+                    // ✅ OPTIMIZATION: Write directly to file instead of building a huge string
+                    let val = to_string(layer.weights[r][c])
 
-            mut b_str = ""
+                    if c < layer.input_size - 1:
+                        file_append(filename, val + ",")
+                    else:
+                        file_append(filename, val) // No comma at end of row
+
+                    c = c + 1
+
+                if r < layer.output_size - 1:
+                    file_append(filename, ",") // Comma between rows
+
+                r = r + 1
+
+            file_append(filename, "\n")
+
+            // Write Biases (Value by Value)
             let b_len = len(layer.biases)
             mut k = 0
             while k < b_len:
-                b_str = b_str + to_string(layer.biases[k])
-                if k < b_len - 1:
-                    b_str = b_str + ","
-                k = k + 1
-            data = data + b_str
+                let val = to_string(layer.biases[k])
 
+                if k < b_len - 1:
+                    file_append(filename, val + ",")
+                else:
+                    file_append(filename, val)
+
+                k = k + 1
+
+            // Newline after biases only if there are more layers or to end the block
             if i < num_layers - 1:
-                data = data + "\n"
+                file_append(filename, "\n")
 
             i = i + 1
 
-        file_write(filename, data)
         print("Model saved successfully.")
 
     func load(filename: String):
@@ -484,6 +499,10 @@ func evaluate_network(
     dataset: Dataset,
     threshold: Float
 ) -> Float:
+    if dataset.size == 0:
+        print("Warning: Dataset is empty. Cannot evaluate accuracy.")
+        return 0.0
+
     mut correct = 0
     mut i = 0
 

@@ -171,6 +171,10 @@ impl Evaluator {
         e.set("time".to_string(), RuntimeValue::BuiltinFunction("time".to_string()));
         e.set("matrix_update".to_string(), RuntimeValue::BuiltinFunction("matrix_update".to_string()));
         e.set("compute_input_gradient".to_string(), RuntimeValue::BuiltinFunction("compute_input_gradient".to_string()));
+        e.set(
+            "file_append".to_string(),
+            RuntimeValue::BuiltinFunction("file_append".to_string()),
+        );
 
         e.set(
             "print".to_string(),
@@ -1689,6 +1693,7 @@ impl Evaluator {
 
                     "file_write" => Self::builtin_file_write(evaluated_args),
                     "file_read" => Self::builtin_file_read(evaluated_args),
+                    "file_append" => Self::builtin_file_append(evaluated_args),
 
                     _ => Err(format!(
                         "Runtime Error at {}: Unknown built-in function '{}'.",
@@ -1989,11 +1994,38 @@ impl Evaluator {
         println!("-----------------------------------");
     }
 
-    fn builtin_compute_input_gradient(args: Vec<RuntimeValue>) -> Result<RuntimeValue, String> {
+    fn builtin_file_append(args: Vec<RuntimeValue>) -> Result<RuntimeValue, String> {
         if args.len() != 2 {
-            return Err("Runtime Error: 'compute_input_gradient' requires 2 args (weights, delta)".to_string());
+            return Err(
+                "Runtime Error: 'file_append' expects 2 arguments (path, content).".to_string(),
+            );
         }
 
+        let path = match &args[0] {
+            RuntimeValue::String(s) => s,
+            _ => return Err("Runtime Error: File path must be a String.".to_string()),
+        };
+
+        let content = match &args[1] {
+            RuntimeValue::String(s) => s,
+            _ => return Err("Runtime Error: File content must be a String.".to_string()),
+        };
+
+        let mut file = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .append(true)
+            .open(path)
+            .map_err(|e| format!("File Append Error: {}", e))?;
+
+        write!(file, "{}", content).map_err(|e| format!("File Write Error: {}", e))?;
+        Ok(RuntimeValue::None)
+    }
+
+    fn builtin_compute_input_gradient(args: Vec<RuntimeValue>) -> Result<RuntimeValue, String> {
+        if args.len() != 2 && args.len() != 4 {
+            return Err("Runtime Error: 'compute_input_gradient' requires 2 or 4 args".to_string());
+        }
         let weights_matrix = match &args[0] {
             RuntimeValue::Register(v) => v,
             _ => return Err("Runtime Error: Weights must be a matrix".to_string())
@@ -2060,8 +2092,8 @@ impl Evaluator {
     }
 
     fn builtin_matrix_update(args: Vec<RuntimeValue>) -> Result<RuntimeValue, String> {
-        if args.len() != 4 {
-            return Err("Runtime Error: 'matrix_update' requires 4 args (weights, delta, input, lr)".to_string());
+        if args.len() != 4 && args.len() != 6 {
+            return Err("Runtime Error: 'matrix_update' requires 4 or 6 args".to_string());
         }
 
         let lr = match args[3] {
